@@ -518,7 +518,7 @@ function renderStocks(){
 
 /* ---------- PATTERN MODE ---------- */
 const PAT_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symbol",l:true},{k:"spark",t:"Trend",l:true},{k:"sig",t:"Setup",l:true},{k:"pat",t:"Pattern",l:true},
-  {k:"price",t:"Price"},{k:"level",t:"Buy >"},{k:"totrig",t:"To Trigger"},{k:"today",t:"Today %"},{k:"rsi",t:"RSI"},{k:"rs",t:"RS"},
+  {k:"price",t:"Price"},{k:"level",t:"Buy >"},{k:"totrig",t:"To Trigger"},{k:"today",t:"Today %"},{k:"rsi",t:"RSI"},{k:"rs",t:"RS"},{k:"coil",t:"Ignition"},
   {k:"sector",t:"Sector",l:true},{k:"relvol",t:"Rel Vol %"},{k:"dist52",t:"vs 52W Hi"},{k:"ema",t:"EMA Trend"}];
 
 function patternRows(){
@@ -562,6 +562,7 @@ function patCell(c,x,i){
     case "sector":return `<td class="l"><span class="sector${x.sector?' secjump':''}" data-sec="${x.sector||''}" title="${x.sector?'Open '+x.sector+' in Sectors view':''}"><span class="pip" style="background:${pipColor(x.srs)}"></span><span class="nm">${x.sector||"—"}</span></span></td>`;
     case "relvol":return `<td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${x.relvol!=null?x.relvol+"%":"—"}</td>`;
     case "dist52":return `<td class="num" style="color:${x.dist52==null?'var(--muted)':x.dist52>=-2?'var(--yellow)':x.dist52>=-10?'var(--green)':x.dist52>=-25?'var(--muted)':'var(--red)'}" title="${x.dist52==null?'':x.dist52>=-2?'At/near the 52w high — chase zone (worst bucket in backtest: 58% fail)':x.dist52>=-10?'2-10% below the high — the sweet spot (best bucket: 36% fail / 44% win)':x.dist52>=-25?'Well off the high':'Deep below the 52w high'}">${x.dist52!=null?x.dist52.toFixed(1)+"%":"—"}</td>`;
+    case "coil": return x.coil!=null?coilCell(x):`<td class="num" style="color:var(--muted)">—</td>`;
     case "ema":  return `<td>${emaBars(x.ema)}</td>`;
   }
 }
@@ -670,7 +671,7 @@ function render(){
   document.querySelectorAll('.sigonly').forEach(e=>e.classList.toggle('hide',!patMode));
   $("xall").classList.toggle('hide', patMode || S.view!=="sectors");
   $("viewctl").classList.toggle('hide',patMode);
-  if(patMode){ $("foot").innerHTML=FOOT_PAT; if(!["rs","drs","relvol","rsi","today","price","dist52","totrig","level","sym","sig"].includes(S.sortK)) S.sortK="relvol"; renderPatterns(); }
+  if(patMode){ $("foot").innerHTML=FOOT_PAT; if(!["rs","drs","relvol","rsi","today","price","dist52","totrig","level","sym","sig","coil"].includes(S.sortK)) S.sortK="relvol"; renderPatterns(); }
   else if(S.view==="stocks"){ $("foot").innerHTML=FOOT_STK; if(!["rs","drs","rsi","coil","ret","today","price","mc","relvol","sym","ema"].includes(S.sortK)) S.sortK="rs"; renderStocks(); }
   else { $("foot").innerHTML=FOOT_SEC; if(!["rs","drs","ret","today","n","name"].includes(S.sortK)) S.sortK="rs"; renderSectors(); }
   renderPulse(); breadthLine(); metaLine(); saveHash();
