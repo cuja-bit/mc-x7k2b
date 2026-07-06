@@ -421,7 +421,7 @@ function lbLabel(){ return S.lbMode==="days" ? `${S.lbDays}-day lookback`
 function setHead(cols){ $("head").innerHTML = cols.map(c=>`<th data-k="${c.k}" class="${c.l?'l':''}">${c.t}${INFO[c.k]?`<span class="hi ${INFOPOS[c.k]||''}" data-tip="${INFO[c.k]}">i</span>`:""}<span class="ar" data-ar="${c.k}"></span></th>`).join(""); }
 function arrows(){ document.querySelectorAll('[data-ar]').forEach(e=>e.textContent="");
   const a=document.querySelector(`[data-ar="${S.sortK}"]`); if(a) a.textContent=S.sortDir<0?"▼":"▲"; }
-function sortRows(r){ return r.slice().sort((a,b)=>{let av=a[S.sortK],bv=b[S.sortK];
+function sortRows(r){ const k=S.sortK==="sig"?"sigRank":S.sortK; return r.slice().sort((a,b)=>{let av=a[k],bv=b[k];
   if(av==null)return 1; if(bv==null)return -1; return (av<bv?-1:av>bv?1:0)*S.sortDir;}); }
 
 /* ---------- SECTOR MODE (default) ---------- */
@@ -523,10 +523,20 @@ const PAT_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symb
 
 function patternRows(){
   let all=[];
+  // symbol -> full stock record (price, rs, sector, srs, ema, sparkline, dist52, relvol...)
+  const master={};
+  allStocks().forEach(s=>{ master[s.sym]=s; });
   S.patterns.forEach(pk=>{
     const p=mk[S.market].patterns[pk];
     const arr=(p&&p.tf&&p.tf[S.tf])?p.tf[S.tf]:[];
-    arr.forEach(x=>all.push({...x,pat:p.label}));
+    arr.forEach(x=>{
+      const m=master[x.sym]||{};
+      // pattern fields (sig/level/grade/rsi from scan) win; everything else backfilled from master
+      const row={...m,...x,pat:p.label};
+      if(row.rsi!=null) row.rsi=Math.round(row.rsi);
+      row.sigRank=(row.sig==="BUY"?0:10)+(row.g==="A"?0:row.g==="B"?1:row.g==="C"?2:3);
+      all.push(row);
+    });
   });
   if(S.sig!=="ALL") all=all.filter(x=>x.sig===S.sig);
   if(S.q) all=all.filter(x=>x.sym.toLowerCase().includes(S.q)||(x.nm||"").toLowerCase().includes(S.q));
@@ -660,7 +670,7 @@ function render(){
   document.querySelectorAll('.sigonly').forEach(e=>e.classList.toggle('hide',!patMode));
   $("xall").classList.toggle('hide', patMode || S.view!=="sectors");
   $("viewctl").classList.toggle('hide',patMode);
-  if(patMode){ $("foot").innerHTML=FOOT_PAT; if(!["rs","drs","relvol","rsi","today","price","dist52","totrig","level","sym"].includes(S.sortK)) S.sortK="relvol"; renderPatterns(); }
+  if(patMode){ $("foot").innerHTML=FOOT_PAT; if(!["rs","drs","relvol","rsi","today","price","dist52","totrig","level","sym","sig"].includes(S.sortK)) S.sortK="relvol"; renderPatterns(); }
   else if(S.view==="stocks"){ $("foot").innerHTML=FOOT_STK; if(!["rs","drs","rsi","coil","ret","today","price","mc","relvol","sym","ema"].includes(S.sortK)) S.sortK="rs"; renderStocks(); }
   else { $("foot").innerHTML=FOOT_SEC; if(!["rs","drs","ret","today","n","name"].includes(S.sortK)) S.sortK="rs"; renderSectors(); }
   renderPulse(); breadthLine(); metaLine(); saveHash();
@@ -697,7 +707,7 @@ function computePulse(m, trim=0){
   let net=0, a20d=0;
   if(nn>0){ const d50=(a50n-a50p)/nn, ad=up5/nn; net=(nh-nl)/nn; a20d=(a20n-a20p)/nn;
     const v=clamp01(0.5 + d50*3 + (ad-0.5)*0.9 + net*2);
-    parts.push({k:"br",l:"Breadth trend",v:v,max:25,d:(d50>=0?"+":"")+Math.round(d50*100)+"% more stocks in uptrend vs last week · "+Math.round(ad*100)+"% rose over 5 days · "+(nh-nl>=0?"+":"")+(nh-nl)+" net new highs"}); }
+    parts.push({k:"br",l:"Breadth trend",v:v,max:25,d:(d50>=0?"+"+Math.round(d50*100)+"% more":Math.round(-d50*100)+"% fewer")+" stocks above their 50EMA vs last week · "+Math.round(ad*100)+"% rose over 5 days · "+(nh-nl>=0?"+":"")+(nh-nl)+" net new highs"}); }
   // 3) Index structure (25) on the selected benchmark
   const bl=bc[bc.length-1], e20=_ema(bc.slice(-60),20), e50=_ema(bc.slice(-120),50);
   const h20=Math.max(...bc.slice(-20)), dist=(bl-h20)/h20*100, slope=(bl-bc[bc.length-6])/bc[bc.length-6]*100;
@@ -749,6 +759,10 @@ function renderPulse(){
   if(m.pulse&&m.pulse.vix&&m.pulse.vix.length>=6){ const v=m.pulse.vix, r=(v[v.length-1]-v[v.length-6])/v[v.length-6];
     if(r>=0.10) W.push("volatility bid — VIX +"+Math.round(r*100)+"% in 5 days"); }
   el.classList.remove('hide'); el.className="pulse "+P.cls;
+  // Early-warning is a LEADING strip. When the dial is solidly green (Aggressive),
+  // a lone weak-close reading contradicts the headline and reads as noise —
+  // require at least two independent warnings before showing it at high Pulse.
+  const Wshow = (P.cls==="g" && P.score>=70) ? (W.length>=2 ? W : []) : W;
   const deltaHtml = dP==null? "" :
     `<span class="pdelta" style="color:${dP>0?'var(--green)':dP<0?'var(--red)':'var(--muted)'}" title="ΔPulse: the dial was ${P3.score} three bars ago. The direction of the Pulse often leads its level — a green dial that is falling fast is a warning; a red dial turning up is a thaw.">${dP>0?"▲ +"+dP:dP<0?"▼ "+dP:"±0"}<span style="color:var(--dim);font-weight:400"> / 3 bars</span></span>`;
   el.innerHTML = pulseGauge(P.score,P.cls) + `
@@ -761,10 +775,10 @@ function renderPulse(){
       const col=c.v>=0.62?"var(--green)":c.v>=0.38?"var(--yellow)":"var(--red)";
       return `<div class="pc" title="${c.d}"><div class="pl">${c.l} · ${Math.round(c.v*c.max)}/${c.max}</div><div class="pv">${c.d.split("·")[0].trim()}</div><div class="pbar"><i style="width:${Math.round(c.v*100)}%;background:${col}"></i></div></div>`; }).join("")}
     </div>
-    ${W.length?`<div class="pwarn">⚠ <b>EARLY WARNING</b> — ${W.join(" · ")}${P.cls!=="r"?" · skip fresh entries until this clears":""}</div>`:""}`;
+    ${Wshow.length?`<div class="pwarn">⚠ <b>EARLY WARNING</b> — ${Wshow.join(" · ")}${P.cls!=="r"?" · skip fresh entries until this clears":""}</div>`:""}`;
   const pcol=P.cls==="g"?"var(--green)":P.cls==="y"?"var(--yellow)":"var(--red)";
   pill.classList.remove('hide');
-  pill.innerHTML=`<span class="dot" style="background:${pcol}"></span><b style="color:${pcol}">${P.score}</b>${dP!=null&&dP!==0?`<span style="color:${dP>0?'var(--green)':'var(--red)'};font-size:11px;font-weight:700">${dP>0?"▲":"▼"}</span>`:""} <span style="color:var(--muted)">${P.state}</span>${W.length?'<span style="color:var(--yellow)">⚠</span>':""}`;
+  pill.innerHTML=`<span class="dot" style="background:${pcol}"></span><b style="color:${pcol}">${P.score}</b>${dP!=null&&dP!==0?`<span style="color:${dP>0?'var(--green)':'var(--red)'};font-size:11px;font-weight:700">${dP>0?"▲":"▼"}</span>`:""} <span style="color:var(--muted)">${P.state}</span>${Wshow.length?'<span style="color:var(--yellow)">⚠</span>':""}`;
 }
 function breadthLine(){
   const m=mk[S.market], el=$("breadth");
@@ -775,7 +789,7 @@ function breadthLine(){
     `<span class="bch">${mk[S.market].benchmarks[S.bench]} <b style="color:${b.bret>0?'var(--green)':b.bret<0?'var(--red)':'var(--muted)'}">${pct(b.bret)}</b> <span style="color:var(--dim)">over lookback</span></span>`,
     `<span class="bch">Above 200 EMA <b style="color:${col(b.a200,60,40)}">${b.a200!=null?b.a200+"%":"—"}</b></span>`,
     `<span class="bch">Above 50 EMA <b style="color:${col(b.a50,60,40)}">${b.a50!=null?b.a50+"%":"—"}</b></span>`,
-    `<span class="bch">Adv / Dec <b style="color:${b.adv>=b.dec?'var(--green)':'var(--red)'}">${b.adv} / ${b.dec}</b></span>`,
+    `<span class="bch">Adv / Dec <b style="color:var(--green)">${b.adv}</b> <span style="color:var(--muted)">/</span> <b style="color:var(--red)">${b.dec}</b></span>`,
     `<span class="bch">Median RS <b style="color:${col(b.med,60,40)}">${b.med??"—"}</b></span>`,
     `<span class="bch" title="Tight + strong + near highs — candidates to fire in 1–3 sessions">⚡ Coiling <b style="color:${b.coil>0?'var(--accent)':'var(--muted)'}">${b.coil??0}</b></span>`
   ].join("");
@@ -857,7 +871,7 @@ $("csv").onclick=()=>{ try{
   document.body.appendChild(a); a.click(); a.remove();
 }catch(err){ console.error('csv export',err); } };
 $("head").onclick=e=>{const th=e.target.closest('th');if(!th)return;const k=th.dataset.k;if(["sig","sector","pat","rank","spark","wl"].includes(k))return;
-  if(S.sortK===k)S.sortDir*=-1;else{S.sortK=k;S.sortDir=(k==="sym"||k==="name")?1:-1;}render();
+  if(S.sortK===k)S.sortDir*=-1;else{S.sortK=k;S.sortDir=(k==="sym"||k==="name"||k==="sig")?1:-1;}render();
   if(S.patterns.size===0 && S.view==="sectors" && S.open.size===1){const el=document.querySelector('tr.sect.open');if(el)el.scrollIntoView({block:'center',behavior:'smooth'});}};
 $("body").onclick=e=>{
   const w=e.target.closest('.wlstar');
