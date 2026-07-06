@@ -691,8 +691,8 @@ function computePulse(m, trim=0){
   all.forEach(x=>{ const c=CC(x); if(!c||c.length<70) return;
     const t=c.length-6, hi60=Math.max(...c.slice(t-60,t));
     if(c[t]>=hi60*0.999){ brk++; if(c[c.length-1]>c[t]) held++; } });
-  if(brk>=8){ const ft=held/brk; parts.push({k:"ft",l:"Follow-through",v:clamp01((ft-0.35)/0.4),max:30,d:Math.round(ft*100)+"% of "+brk+" recent breakouts holding"}); }
-  else parts.push({k:"ft",l:"Follow-through",v:0.5,max:30,d:"too few recent breakouts ("+brk+") — neutral"});
+  if(brk>=8){ const ft=held/brk; parts.push({k:"ft",l:"Follow-through",v:clamp01((ft-0.35)/0.4),max:35,d:Math.round(ft*100)+"% of "+brk+" recent breakouts holding"}); }
+  else parts.push({k:"ft",l:"Follow-through",v:0.5,max:35,d:"too few recent breakouts ("+brk+") — neutral"});
   // 2) Breadth trend (25) + internals for the divergence detector
   let a50n=0,a50p=0,a20n=0,a20p=0,up5=0,nh=0,nl=0,nh5=0,nn=0;
   all.forEach(x=>{ const c=CC(x); if(!c||c.length<70) return; nn++;
@@ -709,16 +709,16 @@ function computePulse(m, trim=0){
   if(nn>0){ const d50=(a50n-a50p)/nn, ad=up5/nn; net=(nh-nl)/nn; a20d=(a20n-a20p)/nn;
     const nowPct=Math.round(a50n/nn*100), weekPct=Math.round(a50p/nn*100), dir=nowPct>weekPct?"up from":nowPct<weekPct?"down from":"flat vs";
     const v=clamp01(0.5 + d50*3 + (ad-0.5)*0.9 + net*2);
-    parts.push({k:"br",l:"Breadth trend",v:v,max:25,d:nowPct+"% of stocks are in an uptrend (above their 50-day average), "+dir+" "+weekPct+"% a week ago · "+Math.round(ad*100)+"% rose in the last 5 days · "+(nh-nl>=0?"+":"")+(nh-nl)+" more stocks at new highs than new lows"}); }
+    parts.push({k:"br",l:"Breadth trend",v:v,max:30,d:nowPct+"% of stocks are in an uptrend (above their 50-day average), "+dir+" "+weekPct+"% a week ago · "+Math.round(ad*100)+"% rose in the last 5 days · "+(nh-nl>=0?"+":"")+(nh-nl)+" more stocks at new highs than new lows"}); }
   // 3) Index structure (25) on the selected benchmark
   const bl=bc[bc.length-1], e20=_ema(bc.slice(-60),20), e50=_ema(bc.slice(-120),50);
   const h20=Math.max(...bc.slice(-20)), dist=(bl-h20)/h20*100, slope=(bl-bc[bc.length-6])/bc[bc.length-6]*100;
   let iv=0; if(bl>e20) iv+=0.28; if(e20>e50) iv+=0.24; iv+=dist>=-1?0.24:dist>=-4?0.12:0; iv+=slope>0?0.24:slope>-1?0.12:0;
-  parts.push({k:"ix",l:"Index structure",v:Math.min(1,iv),max:25,d:bname+" "+(bl>e20?"above":"below")+" 20EMA · "+dist.toFixed(1)+"% off 20-bar high · 5-bar "+(slope>0?"+":"")+slope.toFixed(1)+"%"});
+  parts.push({k:"ix",l:"Index structure",v:Math.min(1,iv),max:10,d:bname+" "+(bl>e20?"above":"below")+" 20EMA · "+dist.toFixed(1)+"% off 20-bar high · 5-bar "+(slope>0?"+":"")+slope.toFixed(1)+"%"});
   // 4) Closing strength (10)
   const clvA=(m.pulse&&m.pulse.clv&&m.pulse.clv.length>3)?(trim?m.pulse.clv.slice(0,-Math.min(trim,m.pulse.clv.length-3)):m.pulse.clv):null;
   if(clvA&&clvA.length>=3){ const c3=clvA.slice(-3), a=c3.reduce((x,y)=>x+y,0)/c3.length;
-    parts.push({k:"cs",l:"Close strength",v:clamp01((a-0.35)/0.25),max:10,d:"stocks closing at "+Math.round(a*100)+"% of daily range (3-day avg)"+(a<0.45?" — pops being sold":"")}); }
+    parts.push({k:"cs",l:"Close strength",v:clamp01((a-0.35)/0.25),max:15,d:"stocks closing at "+Math.round(a*100)+"% of daily range (3-day avg)"+(a<0.45?" — pops being sold":"")}); }
   // 5) Volatility (10)
   const vixA=(m.pulse&&m.pulse.vix&&m.pulse.vix.length>=20+trim)?(trim?m.pulse.vix.slice(0,-trim):m.pulse.vix):((m.pulse&&m.pulse.vix&&m.pulse.vix.length>=20)?m.pulse.vix:null);
   if(vixA&&vixA.length>=20){ const vl=vixA[vixA.length-1], m20=vixA.slice(-20).reduce((x,y)=>x+y,0)/20, sl=(vl-vixA[vixA.length-6])/vixA[vixA.length-6];
@@ -727,7 +727,7 @@ function computePulse(m, trim=0){
   const score=Math.round(earned/avail*100);
   const st=score>=65?["g","AGGRESSIVE","Momentum is being paid — full-size longs justified."]
           :score>=40?["y","SELECTIVE","Mixed tape — half size, A+ setups only, tighten stops."]
-          :["r","STAND ASIDE","Breakouts are squatting — sit out new entries."];
+          :["r","CAUTION","Weak tape — trades still averaged +0.2R here, but expect little follow-through: half-size, A-grades only."];
   // leading internals: divergence + latest breakout close quality
   const divergence = dist>=-1 && ((net<=0?1:0)+(a20d<0?1:0)+(nh<=nh5?1:0))>=2;
   let bqN=null,bqQ=null;
