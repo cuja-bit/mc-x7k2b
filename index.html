@@ -113,6 +113,8 @@ tr.open .exp{transform:rotate(90deg);color:var(--accent)}
 .badge.watch .dot{animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .star{color:var(--accent);font-size:10px;margin-left:6px;font-weight:700}
+.echip{display:inline-block;padding:1px 6px;border-radius:6px;font-size:9.5px;font-weight:700;letter-spacing:.4px;border:1px solid;opacity:.9;cursor:help;white-space:nowrap}
+.edtag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.3px;background:rgba(255,190,70,.14);color:var(--yellow);border:1px solid rgba(255,190,70,.35);vertical-align:1px;cursor:help;white-space:nowrap}
 .grade{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:6px;font-size:10.5px;font-weight:800;letter-spacing:.4px;vertical-align:1px}
 .gA{background:rgba(46,204,113,.16);color:#2ecc71;border:1px solid rgba(46,204,113,.35)}
 .gB{background:rgba(241,196,15,.14);color:#f1c40f;border:1px solid rgba(241,196,15,.32)}
@@ -141,7 +143,7 @@ tr.subwrap>td{box-shadow:inset 3px 0 0 var(--accent)}
 .tv:hover{color:var(--accent);background:var(--chip)}
 .tv svg{width:13px;height:13px}
 .sector{display:flex;align-items:center;gap:7px}
-.subscroll{max-height:346px;overflow-y:auto}
+.subscroll{max-height:62vh;overflow-y:auto}
 .xall{display:inline-flex;gap:6px;margin-left:14px}
 .xall button{background:var(--chip);border:1px solid transparent;color:var(--muted);font:inherit;font-weight:600;font-size:12px;padding:5px 11px;border-radius:6px;cursor:pointer;transition:.12s}
 .xall button:hover{color:var(--text);border-color:var(--border2)}
@@ -155,7 +157,7 @@ tr.subwrap>td{box-shadow:inset 3px 0 0 var(--accent)}
 .subwrap{padding:0}
 .subwrap td{padding:0;border-bottom:1px solid var(--border)}
 .subtbl{width:100%;border-collapse:collapse;background:var(--sub)}
-.subtbl th{position:static;background:var(--sub);font-size:10px;padding:7px 10px;white-space:normal;line-height:1.3;vertical-align:middle;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;text-align:left;border-bottom:1px solid var(--border);border-right:1px solid var(--border);cursor:default}
+.subtbl th{position:sticky;top:0;z-index:2;cursor:pointer;background:var(--sub);font-size:10px;padding:7px 10px;white-space:normal;line-height:1.3;vertical-align:middle;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;text-align:left;border-bottom:1px solid var(--border);border-right:1px solid var(--border);cursor:default}
 .subtbl th.l{text-align:left}
 .subtbl th:first-child{padding-left:46px}
 .subtbl td{padding:8px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:left}
@@ -291,7 +293,8 @@ input[type=range]{accent-color:var(--accent)}
   <div class="fgrp"><span class="flbl">Min RS</span><input type="range" id="frs" min="0" max="99" value="0"><span class="fval" id="frsv">Any</span></div>
   <div class="fgrp"><span class="flbl">Min Ignition</span><input type="range" id="fig" min="0" max="100" value="0"><span class="fval" id="figv">Any</span></div>
   <div class="fgrp"><span class="flbl">EMA trend</span><div class="seg" id="fema"><button data-e="0" class="on">Any</button><button data-e="2">2+</button><button data-e="3">3+</button><button data-e="4">4/4</button></div></div>
-  <div class="fgrp"><span class="flbl">Rel vol ≥</span><div class="seg" id="frv"><button data-r="0" class="on">Any</button><button data-r="150">150%</button><button data-r="200">200%</button></div></div>
+  <div class="fgrp"><span class="flbl">EMA cross</span><select id="xfSel" class="txt" style="width:auto;padding:5px 8px"><option>5</option><option>9</option><option selected>10</option><option>13</option><option>20</option></select><span class="flbl">×</span><select id="xsSel" class="txt" style="width:auto;padding:5px 8px"><option selected>20</option><option>21</option><option>50</option><option>100</option><option>200</option></select></div>
+  <div class="fgrp"><span class="flbl">Rel vol ≥</span><div class="seg" id="frv"><button data-r="0" class="on">Any</button><button data-r="150">1.5x</button><button data-r="200">2x</button></div></div>
   <div class="fgrp"><span class="flbl">Near 52W hi</span><div class="seg" id="f52"><button data-d="" class="on">Any</button><button data-d="-5">≤5%</button><button data-d="-15">≤15%</button></div></div>
   <button class="fclear" id="fclear">Reset all</button>
 </div>
@@ -332,6 +335,8 @@ function loadWatch(){ try{ return new Set(JSON.parse(localStorage.getItem('mc_wa
 function saveWatch(){ try{ localStorage.setItem('mc_watch', JSON.stringify([...S.watch])); }catch(e){} }
 S.watch=loadWatch(); S.wlOnly=false; S.limit=300;
 S.f={mcLo:0,mcHi:100,prLo:null,prHi:null,rsMin:0,igMin:0,emaMin:0,rvMin:0,d52:null};
+S.xf=+(localStorage.getItem("mcXf")||10); S.xs=+(localStorage.getItem("mcXs")||20);
+setTimeout(()=>{ const a=document.getElementById("xfSel"),b=document.getElementById("xsSel"); if(a)a.value=S.xf; if(b)b.value=S.xs; },0);
 function mcBounds(){const m=mk[S.market];return [Math.max(1,m._mcMin||1e7), Math.max(2,m._mcMax||1e13)];}
 function mcFromT(t){const[lo,hi]=mcBounds();return Math.exp(Math.log(lo)+t*(Math.log(hi)-Math.log(lo)));}
 function fCount(){const f=S.f;let n=0;if(f.mcLo>0||f.mcHi<100)n++;if(f.prLo!=null||f.prHi!=null)n++;if(f.rsMin>0)n++;if(f.igMin>0)n++;if(f.emaMin>0)n++;if(f.rvMin>0)n++;if(f.d52!=null)n++;return n;}
@@ -360,8 +365,9 @@ const pipColor = v => v==null?"var(--muted)":v>=60?"var(--green)":v>=40?"var(--y
 const INFO={
   rs:"Relative Strength (1–99) vs the selected benchmark over the lookback. 99 = strongest, 1 = weakest — it's where today's price/benchmark ratio sits within its lookback range.",
   ema:"How many of the four EMAs (9 / 20 / 50 / 200) price trades above. 4/4 = above all (strongest trend alignment); 0/4 = below all.",
-  dist52:"How far below the 52-week high the price is. Colors follow the backtest: amber = at/near the high (chase zone, worst outcomes), green = 2-10% below (sweet spot), red = >25% below.",
-  relvol:"Today's volume vs its own 20-day average. 150% = 1.5× the normal turnover.",
+  xage:"Bars since the EMA10 crossed the EMA20. ▲ green ✦ = FRESH golden cross (≤10 bars) — a newborn trend; entries are best while price is still tight (low extension). Grey/old = mature trend, chase risk. ▼ red = EMA10 below EMA20 (repair phase). Click the header to sort and surface the freshest trend births.",
+dist52:"How far below the 52-week high the price is. Colors follow the backtest: amber = at/near the high (chase zone, worst outcomes), green = 2-10% below (sweet spot), red = >25% below.",
+  relvol:"Today's volume vs its own 9-day average, shown as a multiple \u2014 1.5x means one-and-a-half times its recent normal turnover. (The \ud83d\udd25 elite-fire tag still measures vs the 20-day average, matching the backtest.)",
   rsi:"Wilder RSI(14) on the selected timeframe. Above 70 overbought, below 30 oversold; 50 is the momentum midline. Rising through 60 often accompanies breakouts.",
   ret:"Price change over the chosen lookback — the trading-day window, or since the From-date.",
   drs:"RS momentum: change in RS vs ~5 bars ago on this timeframe. ▲ = strength improving (rotating in), ▼ = fading. Leading/Improving/Weakening/Lagging tags combine RS level with this.",
@@ -428,7 +434,7 @@ function sortRows(r){ const k=S.sortK==="sig"?"sigRank":S.sortK; return r.slice(
   if(av==null)return 1; if(bv==null)return -1; return (av<bv?-1:av>bv?1:0)*S.sortDir;}); }
 
 /* ---------- SECTOR MODE (default) ---------- */
-const SECT_COLS=[{k:"name",t:"Sector",l:true},{k:"rs",t:"RS",l:true},{k:"drs",t:"RS Δ"},{k:"ret",t:"Lookback Return"},{k:"today",t:"Today %"},{k:"relvol",t:"Rel Vol %"},{k:"n",t:"Stocks"}];
+const SECT_COLS=[{k:"name",t:"Sector",l:true},{k:"rs",t:"RS",l:true},{k:"drs",t:"RS Δ"},{k:"ret",t:"Lookback Return"},{k:"today",t:"Today %"},{k:"rsi",t:"RSI"},{k:"a20",t:"% > 20EMA"},{k:"apiv",t:"% > Pivot"},{k:"relvol",t:"Rel Vol"},{k:"n",t:"Stocks"}];
 const STK_COLS =[{k:"sym",t:"Symbol",l:true},{k:"rs",t:"RS"},{k:"ema",t:"EMA Trend"},{k:"price",t:"Price"},{k:"today",t:"Today %"},{k:"ret",t:"Lookback Return"}];
 
 function renderSectors(){
@@ -449,23 +455,28 @@ function renderSectors(){
       ${drsCell(s.drs)}
       <td class="num ${s.ret>0?'pos':s.ret<0?'neg':''}">${pct(s.ret)}</td>
       <td class="num ${s.today>0?'pos':s.today<0?'neg':''}">${pct(s.today)}</td>
-      <td class="num" style="color:${s.relvol>=120?'var(--accent)':'var(--muted)'}" title="Average of members' 5-day volume vs their own 20-day average">${s.relvol!=null?s.relvol+"%":"—"}</td>
+      <td class="num" style="color:${s.rsi==null?'var(--muted)':s.rsi>=70?'var(--green)':s.rsi<45?'var(--red)':'var(--text)'}" title="Equal-weight average RSI-14 of the sector's members">${s.rsi??"—"}</td>
+      <td class="num" style="color:${s.a20==null?'var(--muted)':s.a20>=70?'var(--green)':s.a20<35?'var(--red)':'var(--text)'}" title="Participation: % of the sector's members trading above their own 20-day EMA. High RS + low participation = narrow leadership (rally carried by a few names)">${s.a20!=null?s.a20+"%":"—"}</td>
+      <td class="num" style="color:${s.apiv==null?'var(--muted)':s.apiv>=70?'var(--green)':s.apiv<35?'var(--red)':'var(--text)'}" title="% of members trading above today's classic daily pivot ((H+L+C)/3 of the previous session) — intraday bullish posture">${s.apiv!=null?s.apiv+"%":"—"}</td>
+      <td class="num" style="color:${s.relvol>=120?'var(--accent)':'var(--muted)'}" title="Average of members' 5-day volume vs their own 20-day average">${rvx(s.relvol)}</td>
       <td class="num" style="color:var(--muted)">${s.n}</td></tr>`;
     if(!open) return head;
-    const top = s.stocks.slice(0,25);
+    const top = subSort(s.stocks);
     const rows = top.map((x,i)=>`<tr>
-      <td class="l"><span class="sym">${x.sym}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>
+      <td class="l">${wlStar(x.sym)}</td>
+      <td class="l"><span class="sym">${x.sym}${edTag(x)}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>
       <td class="l">${spark(x.c,x.ret)}</td>
       <td class="l">${rsCell(x.rs)}</td>
       ${coilCell(x)}
       <td class="num ${x.ret>0?'pos':x.ret<0?'neg':''}">${pct(x.ret)}</td>
       <td class="num">${fmt(x.price)}</td>
       <td class="num">${mcFmt(x.mc)}</td>
+      <td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${rvx(x.relvol)}</td>
       <td class="num ${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</td>
-      <td>${emaBars(x.ema)}</td></tr>`).join("");
-    const sub = `<tr class="subwrap"><td colspan="${SECT_COLS.length}"><div class="subhd">Top ${top.length} by RS — ${s.name}${s.stocks.length>25?` (of ${s.stocks.length})`:""}</div>
+      ${emaCell(x)}</tr>`).join("");
+    const sub = `<tr class="subwrap"><td colspan="${SECT_COLS.length}"><div class="subhd">All ${top.length} stocks — ${s.name} · click a column header to sort</div>
       <div class="subscroll"><table class="subtbl"><thead><tr>
-        <th class="l">Symbol</th><th class="l">Trend</th><th class="l">RS<span class="hi" data-tip="${INFO.rs}">i</span></th><th>Ignition<span class="hi" data-tip="${INFO.coil}">i</span></th><th>Lookback Return</th><th>Price</th><th>Market Cap</th><th>Today %</th><th>EMA Trend</th>
+        <th class="l">★</th><th class="l" data-sk="sym">Symbol${subArrow("sym")}</th><th class="l">Trend</th><th class="l" data-sk="rs">RS${subArrow("rs")}<span class="hi" data-tip="${INFO.rs}">i</span></th><th data-sk="coil">Ignition${subArrow("coil")}<span class="hi" data-tip="${INFO.coil}">i</span></th><th data-sk="ret">Lookback Return${subArrow("ret")}</th><th data-sk="price">Price${subArrow("price")}</th><th data-sk="mc">Market Cap${subArrow("mc")}</th><th data-sk="relvol">Rel Vol${subArrow("relvol")}</th><th data-sk="today">Today %${subArrow("today")}</th><th data-sk="ema">EMA Trend${subArrow("ema")}</th>
       </tr></thead><tbody>${rows}</tbody></table></div></td></tr>`;
     return head+sub;
   }).join("");
@@ -479,7 +490,7 @@ function mcFmt(v){
   return cr>=1e5 ? "₹"+(cr/1e5).toFixed(2)+"L Cr" : "₹"+Math.round(cr).toLocaleString("en-IN")+" Cr";
 }
 /* ---------- STOCKS MODE (flat RS ranking) ---------- */
-const STKVIEW_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symbol",l:true},{k:"spark",t:"Trend",l:true},{k:"rs",t:"RS",l:true},{k:"drs",t:"RS Δ"},{k:"rsi",t:"RSI"},{k:"coil",t:"Ignition"},{k:"sector",t:"Sector",l:true},{k:"ret",t:"Lookback Return"},{k:"price",t:"Price"},{k:"mc",t:"Market Cap"},{k:"relvol",t:"Rel Vol %"},{k:"today",t:"Today %"},{k:"ema",t:"EMA Trend"}];
+const STKVIEW_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symbol",l:true},{k:"spark",t:"Trend",l:true},{k:"rs",t:"RS",l:true},{k:"drs",t:"RS Δ"},{k:"rsi",t:"RSI"},{k:"xage",t:"EMA Cross"},{k:"dist52",t:"vs 52W Hi"},{k:"coil",t:"Ignition"},{k:"sector",t:"Sector",l:true},{k:"ret",t:"Lookback Return"},{k:"price",t:"Price"},{k:"mc",t:"Market Cap"},{k:"relvol",t:"Rel Vol"},{k:"today",t:"Today %"},{k:"ema",t:"EMA Trend"}];
 function allStocks(){ let out=[]; mk[S.market].sectors.forEach(s=>s.stocks.forEach(x=>out.push({...x,sector:s.name,srs:s.rs}))); return out; }
 const wlStar = sym=>`<span class="wlstar ${S.watch.has(sym)?'on':''}" data-w="${sym}" title="Toggle watchlist">${S.watch.has(sym)?'★':'☆'}</span>`;
 function stocksRows(){
@@ -503,19 +514,21 @@ function renderStocks(){
   let html=shown.map((x,i)=>`<tr class="main">
     <td class="l rank">${i+1}</td>
     <td class="l">${wlStar(x.sym)}</td>
-    <td class="l"><span class="sym">${x.sym}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>
+    <td class="l"><span class="sym">${x.sym}${edTag(x)}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>
     <td class="l">${spark(x.c,x.ret)}</td>
     <td class="l">${rsCell(x.rs)}</td>
     ${drsCell(x.drs)}
     <td class="num"><span class="rs" style="color:${rsColor(x.rsi)};min-width:auto">${x.rsi??"—"}</span></td>
+    ${xageCell(x)}
+    ${dist52Cell(x)}
     ${coilCell(x)}
     <td class="l"><span class="sector secjump" data-sec="${x.sector}" title="Open ${x.sector} in Sectors view"><span class="pip" style="background:${pipColor(x.srs)}"></span><span class="nm">${x.sector}</span></span></td>
     <td class="num ${x.ret>0?'pos':x.ret<0?'neg':''}">${pct(x.ret)}</td>
     <td class="num">${fmt(x.price)}</td>
     <td class="num">${mcFmt(x.mc)}</td>
-    <td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${x.relvol!=null?x.relvol+"%":"—"}</td>
+    <td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${rvx(x.relvol)}</td>
     <td class="num ${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</td>
-    <td>${emaBars(x.ema)}</td></tr>`).join("");
+    ${emaCell(x)}</tr>`).join("");
   if(r.length>S.limit) html+=`<tr class="moretr"><td colspan="${STKVIEW_COLS.length}"><button class="morebtn">Show ${Math.min(500,r.length-S.limit)} more · ${r.length-S.limit} remaining</button></td></tr>`;
   $("body").innerHTML=html;
 }
@@ -523,7 +536,7 @@ function renderStocks(){
 /* ---------- PATTERN MODE ---------- */
 const PAT_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symbol",l:true},{k:"spark",t:"Trend",l:true},{k:"sig",t:"Setup",l:true},{k:"pat",t:"Pattern",l:true},
   {k:"price",t:"Price"},{k:"level",t:"Buy >"},{k:"totrig",t:"To Trigger"},{k:"today",t:"Today %"},{k:"rsi",t:"RSI"},{k:"rs",t:"RS"},{k:"coil",t:"Ignition"},
-  {k:"sector",t:"Sector",l:true},{k:"relvol",t:"Rel Vol %"},{k:"dist52",t:"vs 52W Hi"},{k:"ema",t:"EMA Trend"}];
+  {k:"sector",t:"Sector",l:true},{k:"relvol",t:"Rel Vol"},{k:"dist52",t:"vs 52W Hi"},{k:"ema",t:"EMA Trend"}];
 
 function patternRows(){
   let all=[];
@@ -539,7 +552,7 @@ function patternRows(){
       const row={...m,...x,pat:p.label};
       if(row.rsi!=null) row.rsi=Math.round(row.rsi);
       row.sigRank=(row.sig==="BUY"?0:10)+(row.g==="A"?0:row.g==="B"?1:row.g==="C"?2:3);
-      row.elite=row.sig==="BUY"&&row.relvol!=null&&row.relvol>=250&&row.rsi!=null&&row.rsi>=78;
+      const _rv20=row.rv20!=null?row.rv20:row.relvol; row.elite=row.sig==="BUY"&&_rv20!=null&&_rv20>=250&&row.rsi!=null&&row.rsi>=78;
       all.push(row);
     });
   });
@@ -556,7 +569,7 @@ function patCell(c,x,i){
     case "wl":   return `<td class="l">${wlStar(x.sym)}</td>`;
     case "totrig":return `<td class="num" style="color:${x.totrig==null?'var(--muted)':x.totrig<=0?'var(--yellow)':x.totrig<=1.5?'var(--accent)':'var(--muted)'}" title="${x.totrig==null?'':x.totrig<=0?'Price already through the buy level (watch for confirmation / may have run)':x.totrig<=1.5?'Within 1.5% of the trigger — imminent':''}">${x.totrig!=null?(x.totrig>0?'+':'')+x.totrig.toFixed(2)+"%":"—"}</td>`;
     case "spark":return `<td class="l">${spark(x.c,x.ret)}</td>`;
-    case "sym":  return `<td class="l"><span class="sym">${x.sym}${x.elite?` <span title="ELITE fire: entry-bar volume > 2.5x its 20-day average AND RSI >= 78 — this combo won 76% (fail 8%, avg +2.7R) across 12,048 backtested trades" style="cursor:help">🔥</span>`:""}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>`;
+    case "sym":  return `<td class="l"><span class="sym">${x.sym}${edTag(x)}${x.elite?` <span title="ELITE fire: entry-bar volume > 2.5x its 20-day average AND RSI >= 78 — this combo won 76% (fail 8%, avg +2.7R) across 12,048 backtested trades" style="cursor:help">🔥</span>`:""}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>`;
     case "sig":{const cls=x.sig==="BUY"?"buy":"watch";const gch=x.g?`<span class="grade g${x.g}" data-tip="Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters (extension, 52w-high pullback, RSI floor, quiet pause volume, sector RS)">${x.g}</span>`:"";return `<td class="l"><span class="badge ${cls}"><span class="dot"></span>${x.sig}</span>${x.sup?'<span class="star">★ SUPER</span>':''}${gch}</td>`;}
     case "pat":  return `<td class="l" style="color:var(--muted);font-weight:600">${x.pat}</td>`;
     case "price":return `<td class="num">${fmt(x.price)}</td>`;
@@ -565,10 +578,10 @@ function patCell(c,x,i){
     case "rsi":  return `<td><span class="rs" style="color:${rsColor(x.rsi)};min-width:auto">${x.rsi??"—"}</span></td>`;
     case "rs":   return `<td class="l">${rsCell(x.rs)}</td>`;
     case "sector":return `<td class="l"><span class="sector${x.sector?' secjump':''}" data-sec="${x.sector||''}" title="${x.sector?'Open '+x.sector+' in Sectors view':''}"><span class="pip" style="background:${pipColor(x.srs)}"></span><span class="nm">${x.sector||"—"}</span></span></td>`;
-    case "relvol":return `<td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${x.relvol!=null?x.relvol+"%":"—"}</td>`;
+    case "relvol":return `<td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${rvx(x.relvol)}</td>`;
     case "dist52":return `<td class="num" style="color:${x.dist52==null?'var(--muted)':x.dist52>=-2?'var(--yellow)':x.dist52>=-10?'var(--green)':x.dist52>=-25?'var(--muted)':'var(--red)'}" title="${x.dist52==null?'':x.dist52>=-2?'At/near the 52w high — chase zone (worst bucket in backtest: 58% fail)':x.dist52>=-10?'2-10% below the high — the sweet spot (best bucket: 36% fail / 44% win)':x.dist52>=-25?'Well off the high':'Deep below the 52w high'}">${x.dist52!=null?x.dist52.toFixed(1)+"%":"—"}</td>`;
     case "coil": return x.coil!=null?coilCell(x):`<td class="num" style="color:var(--muted)">—</td>`;
-    case "ema":  return `<td>${emaBars(x.ema)}</td>`;
+    case "ema":  return `${emaCell(x)}`;
   }
 }
 function renderPatterns(){
@@ -587,6 +600,42 @@ function renderPatterns(){
 
 /* ---------- render switch ---------- */
 /* ---- client-side RS / lookback / sector strength from daily closes (live mode) ---- */
+function emaConfig(x){
+  const a9=!!x._a9, a20=!!x._a20, a50=!!x._a50, a200=!!x._a200;
+  if(a9&&a20&&a50&&a200) return "ALIGNED";
+  if(a50&&a200&&(!a9||!a20)) return "PULLBACK";
+  if(a9&&a20&&!a200) return "REPAIR";
+  if((a9||a20)&&!a50&&!a200) return "BOUNCE";
+  if(!a9&&!a20&&!a50&&!a200) return "BROKEN";
+  return "MIXED";
+}
+const EMACFG={
+  ALIGNED:{c:"var(--green)",t:"Above all four EMAs (9/20/50/200) \u2014 fully aligned uptrend"},
+  PULLBACK:{c:"var(--accent)",t:"Above the 50 & 200 but dipped below the short EMAs \u2014 healthy pullback in an uptrend; the HUMBLE/retest zone"},
+  REPAIR:{c:"#4aa3ff",t:"Reclaimed the short EMAs but still under the 200 \u2014 early-stage turnaround"},
+  BOUNCE:{c:"var(--yellow)",t:"Above only a short EMA while below the 50 & 200 \u2014 weak bounce inside a downtrend; low-odds long"},
+  BROKEN:{c:"var(--red)",t:"Below all four EMAs \u2014 broken structure"},
+  MIXED:{c:"var(--muted)",t:"Unusual EMA configuration \u2014 no clean read"}};
+function emaCell(x){ const k=x.emaCfg, m=k?EMACFG[k]:null;
+  return `<td><span style="display:inline-flex;align-items:center;gap:7px">${emaBars(x.ema)}${m?`<span class="echip" style="color:${m.c};border-color:${m.c}" title="${m.t}">${k}</span>`:""}</span></td>`; }
+function rvx(v){ return v!=null?(v/100).toFixed(1).replace(/\.0$/,"")+"x":"\u2014"; }
+function edTag(x){ if(x.ed==null||x.ed>2) return "";
+  const t=x.ed===0?"R\u00b7today":"R+"+x.ed;
+  return ` <span class="edtag" title="${x.ed===0?"Quarterly RESULTS DUE TODAY \u2014 expect a gap/volatility; pattern stops can be jumped":"Quarterly results due in "+x.ed+" day"+(x.ed>1?"s":"")+" \u2014 event risk; size down or wait"}">\ud83d\udcca ${t}</span>`; }
+function _emaSeries(a,p){const k=2/(p+1),out=[a[0]];for(let i=1;i<a.length;i++)out.push(a[i]*k+out[i-1]*(1-k));return out;}
+function crossAge(c,f,sl){ f=f||S.xf||10; sl=sl||S.xs||20; if(!c||c.length<Math.max(40,sl*2)) return null;
+  const e10=_emaSeries(c,f), e20=_emaSeries(c,sl), n=c.length;
+  const sgn=e10[n-1]>=e20[n-1]?1:-1; let a=0;
+  for(let i=n-1;i>=sl;i--){ if((e10[i]>=e20[i]?1:-1)!==sgn) break; a++; }
+  return sgn*Math.min(a,999);
+}
+function xageCell(x){ const v=x.xage;
+  if(v==null) return `<td class="num" style="color:var(--muted)">—</td>`;
+  if(v>0){ const fresh=v<=10;
+    return `<td class="num" style="color:${fresh?'var(--green)':v>60?'var(--muted)':'var(--text)'};font-weight:${fresh?700:500}" title="${fresh?'FRESH golden cross — a newborn trend. Best entries when price is still tight to the 20EMA (backtest: <1 ATR extension = 32% fail / 49% win)':`EMA${S.xf} above EMA${S.xs} for `+v+' days — established trend'+(v>60?' (mature — chase risk rises with age)':'')}">▲ ${v}d${fresh?' ✦':''}</td>`; }
+  return `<td class="num" style="color:var(--red)" title="EMA${S.xf} below EMA${S.xs} for ${-v} days — downtrend / repair phase">▼ ${-v}d</td>`;
+}
+function dist52Cell(x){ return `<td class="num" style="color:${x.dist52==null?'var(--muted)':x.dist52>=-2?'var(--yellow)':x.dist52>=-10?'var(--green)':x.dist52>=-25?'var(--muted)':'var(--red)'}" title="${x.dist52==null?'':x.dist52>=-2?'At/near the 52w high — chase zone (worst bucket in backtest: 58% fail)':x.dist52>=-10?'2-10% below the high — the sweet spot (best bucket: 36% fail / 44% win)':x.dist52>=-25?'Well off the high':'Deep below the 52w high'}">${x.dist52!=null?x.dist52.toFixed(1)+"%":"—"}</td>`; }
 function _ema(a,p){const k=2/(p+1);let e=a[0];for(let i=1;i<a.length;i++)e=a[i]*k+e*(1-k);return e;}
 function emaCount(c){const last=c[c.length-1];let n=0;[9,20,50,200].forEach(p=>{if(c.length>=p&&last>_ema(c.slice(-Math.max(p,60)),p))n++;});return n;}
 function stepSample(a,step){if(step<=1)return a;const o=[];for(let i=a.length-1;i>=0;i-=step)o.unshift(a[i]);return o;}
@@ -613,11 +662,15 @@ function recompute(){
       const hi=Math.max(...x.c.slice(-252)); x.dist52=hi?Math.round((x.c[x.c.length-1]-hi)/hi*1000)/10:null;
       x.relvol=x.rv;
       x.rsi=rsi14(x.c,step);
+      x.xage=crossAge(x.c);
       x.drs=null;
       if(x.rs!=null && sc.length>bars+6){ const prev=mansfield(sc.slice(0,-5),bc.slice(0,-5),bars); if(prev!=null) x.drs=x.rs-prev; }
       const _last=x.c[x.c.length-1];
+      x._a9  = x.c.length>=15 && _last>_ema(x.c.slice(-30),9);
+      x._a20 = x.c.length>=25 && _last>_ema(x.c.slice(-40),20);
       x._a50 = x.c.length>=50 && _last>_ema(x.c.slice(-60),50);
       x._a200 = x.c.length>=200 && _last>_ema(x.c.slice(-200),200);
+      x.emaCfg=emaConfig(x);
       x.coil=null; x.coiling=false;
       if(x.rs!=null && sc.length>=45){
         const rets=[]; for(let i=sc.length-40;i<sc.length;i++){ if(i>0&&sc[i-1]) rets.push(sc[i]/sc[i-1]-1); }
@@ -641,6 +694,9 @@ function recompute(){
     sec.today=avg("today")!=null?Math.round(avg("today")*100)/100:null; sec.n=sec.stocks.length;
     { const rv5=sec.stocks.map(s=>{ if(!s.rvh||!s.rvh.length) return null; const w=s.rvh.slice(-5); return w.reduce((p,c)=>p+c,0)/w.length; }).filter(v=>v!=null);
       sec.relvol=rv5.length?Math.round(rv5.reduce((p,c)=>p+c,0)/rv5.length):null; }
+    sec.rsi=avg("rsi")!=null?Math.round(avg("rsi")):null;
+    { const w=sec.stocks.filter(x=>x.c); sec.a20=w.length?Math.round(w.filter(x=>x._a20).length/w.length*100):null;
+      const p=sec.stocks.filter(x=>x.ap!=null); sec.apiv=p.length?Math.round(p.filter(x=>x.ap===1).length/p.length*100):null; }
     sec.drs=avg("drs")!=null?Math.round(avg("drs")):null;
   });
   m.sectors.sort((a,b)=>(b.rs??-1)-(a.rs??-1));
@@ -688,9 +744,9 @@ function render(){
   $("xall").classList.toggle('hide', patMode || S.view!=="sectors");
   $("viewctl").classList.toggle('hide',patMode);
   if(patMode){ $("foot").innerHTML=FOOT_PAT; if(!["rs","drs","relvol","rsi","today","price","dist52","totrig","level","sym","sig","coil"].includes(S.sortK)) S.sortK="relvol"; renderPatterns(); }
-  else if(S.view==="stocks"){ $("foot").innerHTML=FOOT_STK; if(!["rs","drs","rsi","coil","ret","today","price","mc","relvol","sym","ema"].includes(S.sortK)) S.sortK="rs"; renderStocks(); }
+  else if(S.view==="stocks"){ $("foot").innerHTML=FOOT_STK; if(!["rs","drs","rsi","coil","ret","today","price","mc","relvol","sym","ema","xage","dist52"].includes(S.sortK)) S.sortK="rs"; renderStocks(); }
   else { $("foot").innerHTML=FOOT_SEC; if(S.tf==="1H") S.tf="1D";
-  if(!["rs","drs","ret","today","n","name","relvol"].includes(S.sortK)) S.sortK="rs"; renderSectors(); }
+  if(!["rs","drs","ret","today","n","name","relvol","rsi","a20","apiv"].includes(S.sortK)) S.sortK="rs"; renderSectors(); }
   renderPulse(); breadthLine(); metaLine(); saveHash();
 }
 function computePulse(m, trim=0){
@@ -862,9 +918,24 @@ $("prhi").oninput=e=>{ S.f.prHi=e.target.value===""?null:+e.target.value; fRende
 $("frs").oninput=e=>{ S.f.rsMin=+e.target.value; fRender(); };
 $("fig").oninput=e=>{ S.f.igMin=+e.target.value; fRender(); };
 $("fema").onclick=e=>{ const b=e.target.closest('button'); if(!b)return; S.f.emaMin=+b.dataset.e; setActive('#fema button','e',b.dataset.e); fRender(); };
+S.subK="rs"; S.subDir=-1;
+function subArrow(k){ return S.subK===k?`<span style="color:var(--accent)"> ${S.subDir<0?"\u25bc":"\u25b2"}</span>`:""; }
+function subSort(arr){ const k=S.subK,d=S.subDir;
+  return arr.slice().sort((a,b)=>{ let av=a[k],bv=b[k];
+    if(k==="sym") return d*String(av).localeCompare(String(bv));
+    av=av==null?-Infinity:av; bv=bv==null?-Infinity:bv; return d*(av-bv); }); }
+function recalcXage(){ Object.values(mk).forEach(m=>m.sectors&&m.sectors.forEach(sec=>sec.stocks.forEach(x=>{ if(x.c) x.xage=crossAge(x.c); }))); }
+document.addEventListener("click",e=>{ const th=e.target.closest(".subtbl th[data-sk]"); if(!th)return;
+  const k=th.dataset.sk;
+  if(S.subK===k) S.subDir=-S.subDir; else { S.subK=k; S.subDir=(k==="sym")?1:-1; }
+  render(); });
+$("xfSel").onchange=e=>{ S.xf=+e.target.value; localStorage.setItem("mcXf",S.xf); recalcXage(); render(); };
+$("xsSel").onchange=e=>{ S.xs=+e.target.value; localStorage.setItem("mcXs",S.xs); recalcXage(); render(); };
 $("frv").onclick=e=>{ const b=e.target.closest('button'); if(!b)return; S.f.rvMin=+b.dataset.r; setActive('#frv button','r',b.dataset.r); fRender(); };
 $("f52").onclick=e=>{ const b=e.target.closest('button'); if(!b)return; S.f.d52=b.dataset.d===""?null:+b.dataset.d; setActive('#f52 button','d',b.dataset.d); fRender(); };
 $("fclear").onclick=()=>{ S.f={mcLo:0,mcHi:100,prLo:null,prHi:null,rsMin:0,igMin:0,emaMin:0,rvMin:0,d52:null};
+S.xf=+(localStorage.getItem("mcXf")||10); S.xs=+(localStorage.getItem("mcXs")||20);
+setTimeout(()=>{ const a=document.getElementById("xfSel"),b=document.getElementById("xsSel"); if(a)a.value=S.xf; if(b)b.value=S.xs; },0);
   try{ $("mclo").value=0; $("mchi").value=100; $("prlo").value=""; $("prhi").value=""; $("frs").value=0; $("fig").value=0;
     setActive('#fema button','e','0'); setActive('#frv button','r','0'); setActive('#f52 button','d',''); }catch(e){}
   fRender(); };
