@@ -358,12 +358,12 @@ const pipColor = v => v==null?"var(--muted)":v>=60?"var(--green)":v>=40?"var(--y
 const INFO={
   rs:"Relative Strength (1–99) vs the selected benchmark over the lookback. 99 = strongest, 1 = weakest — it's where today's price/benchmark ratio sits within its lookback range.",
   ema:"How many of the four EMAs (9 / 20 / 50 / 200) price trades above. 4/4 = above all (strongest trend alignment); 0/4 = below all.",
-  dist52:"How far below the 52-week high the price is. 0% = at a fresh high; −20% = 20% under the yearly peak.",
+  dist52:"How far below the 52-week high the price is. Colors follow the backtest: amber = at/near the high (chase zone, worst outcomes), green = 2-10% below (sweet spot), red = >25% below.",
   relvol:"Today's volume vs its own 20-day average. 150% = 1.5× the normal turnover.",
   rsi:"Wilder RSI(14) on the selected timeframe. Above 70 overbought, below 30 oversold; 50 is the momentum midline. Rising through 60 often accompanies breakouts.",
   ret:"Price change over the chosen lookback — the trading-day window, or since the From-date.",
   drs:"RS momentum: change in RS vs ~5 bars ago on this timeframe. ▲ = strength improving (rotating in), ▼ = fading. Leading/Improving/Weakening/Lagging tags combine RS level with this.",
-  totrig:"Distance from the last price up to the buy-stop trigger. Smaller = closer to firing; negative = already through the level.",
+  totrig:"Distance from the last price up to the buy-stop trigger. Purple = within 1.5% (imminent), amber = negative (price already through the level — late/needs confirmation).",
   coil:"Pre-breakout Ignition (0–100): volatility contraction near highs (35) + RS level & momentum (25) + closeness to the 52-week high (25) + volume dry-up in the base (15). ⚡ = coiled — tight, strong and near the pivot; the names most likely to fire in the next 1–3 sessions."
 };
 const INFOPOS={ema:"r",dist52:"r",relvol:"r"};
@@ -549,7 +549,7 @@ function patCell(c,x,i){
   switch(c.k){
     case "rank": return `<td class="l rank">${i+1}</td>`;
     case "wl":   return `<td class="l">${wlStar(x.sym)}</td>`;
-    case "totrig":return `<td class="num" style="color:${x.totrig==null?'var(--muted)':x.totrig<=0?'var(--green)':x.totrig<=1.5?'var(--accent)':'var(--muted)'}" title="${x.totrig!=null&&x.totrig<=0?'Already through the level':''}">${x.totrig!=null?(x.totrig>0?'+':'')+x.totrig.toFixed(2)+"%":"—"}</td>`;
+    case "totrig":return `<td class="num" style="color:${x.totrig==null?'var(--muted)':x.totrig<=0?'var(--yellow)':x.totrig<=1.5?'var(--accent)':'var(--muted)'}" title="${x.totrig==null?'':x.totrig<=0?'Price already through the buy level (watch for confirmation / may have run)':x.totrig<=1.5?'Within 1.5% of the trigger — imminent':''}">${x.totrig!=null?(x.totrig>0?'+':'')+x.totrig.toFixed(2)+"%":"—"}</td>`;
     case "spark":return `<td class="l">${spark(x.c,x.ret)}</td>`;
     case "sym":  return `<td class="l"><span class="sym">${x.sym}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>`;
     case "sig":{const cls=x.sig==="BUY"?"buy":"watch";const gch=x.g?`<span class="grade g${x.g}" data-tip="Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters (extension, 52w-high pullback, RSI floor, quiet pause volume, sector RS)">${x.g}</span>`:"";return `<td class="l"><span class="badge ${cls}"><span class="dot"></span>${x.sig}</span>${x.sup?'<span class="star">★ SUPER</span>':''}${gch}</td>`;}
@@ -561,7 +561,7 @@ function patCell(c,x,i){
     case "rs":   return `<td class="l">${rsCell(x.rs)}</td>`;
     case "sector":return `<td class="l"><span class="sector${x.sector?' secjump':''}" data-sec="${x.sector||''}" title="${x.sector?'Open '+x.sector+' in Sectors view':''}"><span class="pip" style="background:${pipColor(x.srs)}"></span><span class="nm">${x.sector||"—"}</span></span></td>`;
     case "relvol":return `<td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${x.relvol!=null?x.relvol+"%":"—"}</td>`;
-    case "dist52":return `<td class="num" style="color:${x.dist52==null?'var(--muted)':x.dist52>=-2?'var(--green)':x.dist52>=-15?'var(--muted)':'var(--red)'}">${x.dist52!=null?x.dist52.toFixed(1)+"%":"—"}</td>`;
+    case "dist52":return `<td class="num" style="color:${x.dist52==null?'var(--muted)':x.dist52>=-2?'var(--yellow)':x.dist52>=-10?'var(--green)':x.dist52>=-25?'var(--muted)':'var(--red)'}" title="${x.dist52==null?'':x.dist52>=-2?'At/near the 52w high — chase zone (worst bucket in backtest: 58% fail)':x.dist52>=-10?'2-10% below the high — the sweet spot (best bucket: 36% fail / 44% win)':x.dist52>=-25?'Well off the high':'Deep below the 52w high'}">${x.dist52!=null?x.dist52.toFixed(1)+"%":"—"}</td>`;
     case "ema":  return `<td>${emaBars(x.ema)}</td>`;
   }
 }
@@ -706,8 +706,9 @@ function computePulse(m, trim=0){
     if(pl>=Math.max(...pr.slice(-60))) nh5++; });
   let net=0, a20d=0;
   if(nn>0){ const d50=(a50n-a50p)/nn, ad=up5/nn; net=(nh-nl)/nn; a20d=(a20n-a20p)/nn;
+    const nowPct=Math.round(a50n/nn*100), weekPct=Math.round(a50p/nn*100), dir=nowPct>weekPct?"up from":nowPct<weekPct?"down from":"flat vs";
     const v=clamp01(0.5 + d50*3 + (ad-0.5)*0.9 + net*2);
-    parts.push({k:"br",l:"Breadth trend",v:v,max:25,d:(d50>=0?"+"+Math.round(d50*100)+"% more":Math.round(-d50*100)+"% fewer")+" stocks above their 50EMA vs last week · "+Math.round(ad*100)+"% rose over 5 days · "+(nh-nl>=0?"+":"")+(nh-nl)+" net new highs"}); }
+    parts.push({k:"br",l:"Breadth trend",v:v,max:25,d:nowPct+"% of stocks are in an uptrend (above their 50-day average), "+dir+" "+weekPct+"% a week ago · "+Math.round(ad*100)+"% rose in the last 5 days · "+(nh-nl>=0?"+":"")+(nh-nl)+" more stocks at new highs than new lows"}); }
   // 3) Index structure (25) on the selected benchmark
   const bl=bc[bc.length-1], e20=_ema(bc.slice(-60),20), e50=_ema(bc.slice(-120),50);
   const h20=Math.max(...bc.slice(-20)), dist=(bl-h20)/h20*100, slope=(bl-bc[bc.length-6])/bc[bc.length-6]*100;
@@ -870,7 +871,7 @@ $("csv").onclick=()=>{ try{
   a.download=`momentum_${S.market}_${tag}_${TFLBL[S.tf]||S.tf}.csv`.toLowerCase().replace(/\s+/g,'');
   document.body.appendChild(a); a.click(); a.remove();
 }catch(err){ console.error('csv export',err); } };
-$("head").onclick=e=>{const th=e.target.closest('th');if(!th)return;const k=th.dataset.k;if(["sig","sector","pat","rank","spark","wl"].includes(k))return;
+$("head").onclick=e=>{const th=e.target.closest('th');if(!th)return;const k=th.dataset.k;if(["sector","pat","rank","spark","wl"].includes(k))return;
   if(S.sortK===k)S.sortDir*=-1;else{S.sortK=k;S.sortDir=(k==="sym"||k==="name"||k==="sig")?1:-1;}render();
   if(S.patterns.size===0 && S.view==="sectors" && S.open.size===1){const el=document.querySelector('tr.sect.open');if(el)el.scrollIntoView({block:'center',behavior:'smooth'});}};
 $("body").onclick=e=>{
