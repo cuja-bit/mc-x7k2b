@@ -24,7 +24,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-body{padding:18px 20px 60px;max-width:1680px;margin:0 auto;transition:background .2s,color .2s}
+body{padding:18px 24px 60px;max-width:none;margin:0 auto;transition:background .2s,color .2s}
 .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
 
 .top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:14px}
@@ -110,12 +110,15 @@ tr.open .exp{transform:rotate(90deg);color:var(--accent)}
 .badge{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:11px;letter-spacing:.4px;padding:4px 9px;border-radius:6px}
 .badge.watch{background:var(--watch-bg);color:var(--watch)}
 .badge.buy{background:var(--buy-bg);color:var(--buy)}
+.badge.run{background:rgba(34,197,94,.13);color:#22c55e;border:1px solid rgba(34,197,94,.4)}
+.badge.run .rn{font-weight:700;margin-left:5px}
 .badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .badge.watch .dot{animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .star{color:var(--accent);font-size:10px;margin-left:6px;font-weight:700}
 .echip{display:inline-block;padding:1px 6px;border-radius:6px;font-size:9.5px;font-weight:700;letter-spacing:.4px;border:1px solid;opacity:.9;cursor:help;white-space:nowrap}
-.rotwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;padding:14px}
+.rotwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;padding:16px}
+@media(min-width:1200px){.rotwrap{grid-template-columns:repeat(4,1fr)}}
 .rotcol{background:var(--panel2);border:1px solid var(--border);border-radius:14px;overflow:hidden}
 .rothd{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border2);font-weight:800;font-size:12.5px;letter-spacing:.6px}
 .rothd .sub{font-weight:500;color:var(--muted);font-size:11px;letter-spacing:0;margin-top:2px}
@@ -124,8 +127,9 @@ tr.open .exp{transform:rotate(90deg);color:var(--accent)}
 .rotcol .rotitem:hover{border-color:var(--accent)}
 .rotitem .nm{font-weight:700;font-size:13.5px}
 .rotitem .meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:5px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono'}
-.rotitem .mstats{display:flex;gap:10px;align-items:center;min-width:0;overflow:hidden}
-.rotitem .mstats>span{white-space:nowrap}
+.rotitem .mstats{display:flex;gap:8px;align-items:center;min-width:0;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 14px),transparent)}
+.rotitem .mstats>span{white-space:nowrap;font-size:10.5px}
 .rotitem .meta .tchip{flex:none;white-space:nowrap}
 .rotitem .tchip{padding:1px 7px;border-radius:6px;border:1px solid var(--border2);font-size:10.5px;font-weight:700;color:var(--text)}
 .rotitem .pday{margin-left:auto;font-family:'IBM Plex Mono';font-size:12px;font-weight:700}
@@ -223,7 +227,7 @@ tr.subwrap>td{box-shadow:inset 3px 0 0 var(--accent)}
 tr.moretr td{padding:8px 16px}
 .fbtn{font-size:12px;font-weight:600}
 .fbtn.on{color:var(--accent);border-color:var(--accent)}
-.fbar{max-width:1680px;margin:0 auto 14px;padding:12px 16px;background:var(--panel);border:1px solid var(--border);border-radius:12px;display:flex;gap:18px 22px;flex-wrap:wrap;align-items:center}
+.fbar{max-width:none;margin:0 0 14px;padding:12px 16px;background:var(--panel);border:1px solid var(--border);border-radius:12px;display:flex;gap:18px 22px;flex-wrap:wrap;align-items:center}
 .fgrp{display:flex;align-items:center;gap:8px}
 .flbl{font-size:10.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);white-space:nowrap}
 .fval{font-size:11.5px;font-family:'IBM Plex Mono',ui-monospace,monospace;color:var(--muted);white-space:nowrap}
@@ -241,7 +245,7 @@ input[type=range]{accent-color:var(--accent)}
 .dual input[type=range]::-moz-range-thumb{pointer-events:auto;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:grab}
 .fclear{margin-left:auto;background:var(--chip);border:1px solid var(--border);color:var(--muted);font:inherit;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer}
 .fclear:hover{color:var(--text)}
-.pulse{max-width:1680px;margin:0 auto 14px;padding:14px 18px;background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;gap:26px;align-items:center;flex-wrap:wrap;border-left:4px solid var(--muted)}
+.pulse{max-width:none;margin:0 0 14px;padding:14px 18px;background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;gap:26px;align-items:center;flex-wrap:wrap;border-left:4px solid var(--muted)}
 .pulse.g{border-left-color:var(--green)} .pulse.y{border-left-color:var(--yellow)} .pulse.r{border-left-color:var(--red)}
 .pgauge{width:168px;flex:0 0 auto}
 .pmain{flex:0 0 auto;min-width:210px}
@@ -539,7 +543,7 @@ function buildStatic(){
   $("market").innerHTML = Object.entries(mk).map(([k,m])=>
     `<button data-m="${k}" class="${k===S.market?'on':''}" title="${m.label}">${FLAG[k]||`<span class="flag">${m.flag}</span>`}</button>`).join("");
   // timeframe buttons are built per-mode in buildTF()
-  $("sig").innerHTML = [["WATCH","Watch"],["BUY","Buy"],["ALL","All"]].map(([v,l])=>`<button data-sig="${v}" class="${v===S.sig?'on':''}">${l}</button>`).join("");
+  $("sig").innerHTML = [["WATCH","Watch"],["BUY","Buy"],["RUNNING","Running"],["ALL","All"]].map(([v,l])=>`<button data-sig="${v}" class="${v===S.sig?'on':''}">${l}</button>`).join("");
 }
 function buildPatterns(){
   const p = mk[S.market].patterns;
@@ -680,7 +684,7 @@ function patternRows(){
       // pattern fields (sig/level/grade/rsi from scan) win; everything else backfilled from master
       const row={...m,...x,pat:p.label};
       if(row.rsi!=null) row.rsi=Math.round(row.rsi);
-      row.sigRank=(row.sig==="BUY"?0:10)+(row.g==="A"?0:row.g==="B"?1:row.g==="C"?2:3);
+      row.sigRank=(row.sig==="BUY"?0:row.sig==="RUNNING"?5:10)+(row.g==="A"?0:row.g==="B"?1:row.g==="C"?2:3);
       const _rv20=row.rv20!=null?row.rv20:row.relvol; row.elite=row.sig==="BUY"&&_rv20!=null&&_rv20>=250&&row.rsi!=null&&row.rsi>=78;
       all.push(row);
     });
@@ -699,7 +703,10 @@ function patCell(c,x,i){
     case "totrig":return `<td class="num" style="color:${x.totrig==null?'var(--muted)':x.totrig<=0?'var(--yellow)':x.totrig<=1.5?'var(--accent)':'var(--muted)'}" title="${x.totrig==null?'':x.totrig<=0?'Price already through the buy level (watch for confirmation / may have run)':x.totrig<=1.5?'Within 1.5% of the trigger — imminent':''}">${x.totrig!=null?(x.totrig>0?'+':'')+x.totrig.toFixed(2)+"%":"—"}</td>`;
     case "spark":return `<td class="l">${spark(x.c,x.ret)}</td>`;
     case "sym":  return `<td class="l"><span class="sym">${x.sym}${edTag(x)}${x.elite?` <span title="ELITE fire: entry-bar volume > 2.5x its 20-day average AND RSI >= 78 — this combo won 76% (fail 8%, avg +2.7R) across 12,048 backtested trades" style="cursor:help">🔥</span>`:""}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>`;
-    case "sig":{const cls=x.sig==="BUY"?"buy":"watch";const gch=x.g?`<span class="grade g${x.g}" data-tip="Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters (extension, 52w-high pullback, RSI floor, quiet pause volume, sector RS)">${x.g}</span>`:"";return `<td class="l"><span class="badge ${cls}"><span class="dot"></span>${x.sig}</span>${x.sup?'<span class="star">★ SUPER</span>':''}${gch}</td>`;}
+    case "sig":{
+      if(x.sig==="RUNNING"){ const rn=x.run||{}; const rr=rn.rnow!=null?(rn.rnow>0?"+":"")+rn.rnow+"R":"";
+        return `<td class="l"><span class="badge run" title="Open trade — entered ${rn.entry??"?"} about ${rn.ago??"?"} bars ago, still holding above entry. R now vs initial stop.">RUNNING<span class="rn">${rr}</span></span></td>`; }
+      const cls=x.sig==="BUY"?"buy":"watch";const gch=x.g?`<span class="grade g${x.g}" data-tip="Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters (extension, 52w-high pullback, RSI floor, quiet pause volume, sector RS)">${x.g}</span>`:"";return `<td class="l"><span class="badge ${cls}"><span class="dot"></span>${x.sig}</span>${x.sup?'<span class="star">★ SUPER</span>':''}${gch}</td>`;}
     case "pat":  return `<td class="l" style="color:var(--muted);font-weight:600">${x.pat}</td>`;
     case "price":return `<td class="num">${fmt(x.price)}</td>`;
     case "level":return `<td class="num">${x.level!=null?fmt(x.level):'<span class="dash">—</span>'}</td>`;
@@ -741,7 +748,10 @@ function lwcChart(el,x){
     const ls=ch.addSeries(LightweightCharts.LineSeries,{ color:col, lineWidth:1,
       priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
     ls.setData(b.map((r,i)=>({time:r[0],value:+e[i].toFixed(2)}))); }});
-  if(x.level!=null) cs.createPriceLine({ price:x.level, color:th.yellow, lineWidth:1, lineStyle:2,
+  if(x.sig==="RUNNING"&&x.run&&x.run.entry!=null){
+    cs.createPriceLine({ price:x.run.entry, color:th.up, lineWidth:1, lineStyle:0, axisLabelVisible:true, title:"entry" });
+    if(x.run.sl!=null) cs.createPriceLine({ price:x.run.sl, color:th.down, lineWidth:1, lineStyle:2, axisLabelVisible:true, title:"SL" });
+  } else if(x.level!=null) cs.createPriceLine({ price:x.level, color:th.yellow, lineWidth:1, lineStyle:2,
     axisLabelVisible:true, title:x.sig==="BUY"?"entry":"buy-stop" });
   if(x.bx&&x.bx.length===4){ const [top,bot,agoS,agoE]=x.bx, n=b.length;
     const i0=Math.max(0,n-1-agoS), i1=Math.max(i0,Math.min(n-1,n-1-agoE));
@@ -780,10 +790,10 @@ function patChartSvg(x,uid){
   </svg>`;
 }
 function patCard(x,i){
-  const cls=x.sig==="BUY"?"buy":"watch";
+  const cls=x.sig==="BUY"?"buy":x.sig==="RUNNING"?"run":"watch";
   const g=x.g?`<span class="grade g${x.g}" data-tip="Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters">${x.g}</span>`:"";
   return `<div class="pcard" data-tv="${x.sym}" title="Open ${x.sym} in TradingView">
-    <div class="pchead"><span class="badge ${cls}"><span class="dot"></span>${x.sig}</span>${(x.sig==="WATCH"&&x.totrig!=null&&x.totrig<=0)?`<span class="badge brch" title="${/hum/i.test(x.pat||"")?"Price crossed the buy-stop but the fire gate (vol ≥1× 20MA + RSI ≥50) hasn\u2019t confirmed — by design, quiet breaches are skipped":"Price crossed the level after this scan — confirm the breakout candle on the chart"}">breached</span>`:""}${g}${x.sup?'<span class="star">★ SUPER</span>':""}
+    <div class="pchead"><span class="badge ${cls}"${x.sig==="RUNNING"?` title="Open trade — entered ${(x.run&&x.run.entry)??"?"} ~${(x.run&&x.run.ago)??"?"} bars ago"`:""}>${x.sig==="RUNNING"?"":`<span class="dot"></span>`}${x.sig}${x.sig==="RUNNING"&&x.run&&x.run.rnow!=null?` <b class="rn">${x.run.rnow>0?"+":""}${x.run.rnow}R</b>`:""}</span>${(x.sig==="WATCH"&&x.totrig!=null&&x.totrig<=0)?`<span class="badge brch" title="${/hum/i.test(x.pat||"")?"Price crossed the buy-stop but the fire gate (vol ≥1× 20MA + RSI ≥50) hasn\u2019t confirmed — by design, quiet breaches are skipped":"Price crossed the level after this scan — confirm the breakout candle on the chart"}">breached</span>`:""}${g}${x.sup?'<span class="star">★ SUPER</span>':""}
       <span class="sym">${x.sym}${x.elite?" 🔥":""}</span><span class="pcnm">${x.nm||""}</span>${edTag(x)}
       <span class="pcpx">${fmt(x.price)} <b class="${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</b></span></div>
     ${(x.ohlc&&x.ohlc.length>=10&&window.LightweightCharts)?`<div class="lwc" data-ci="${i}"></div>`:patChartSvg(x,i)}
@@ -835,7 +845,7 @@ function aggSec(sec){
       const p=sec.stocks.filter(x=>x.ap!=null); sec.apiv=p.length?Math.round(p.filter(x=>x.ap===1).length/p.length*100):null; }
     sec.drs=avg("drs")!=null?Math.round(avg("drs")):null;
 }
-const GRP={"Advertising/Marketing Services":"Commercial Services","Aerospace & Defence":"Electronic Technology","Agricultural Commodities/Milling":"Process Industries","Air Freight/Couriers":"Transportation","Airlines":"Transportation","Alternative Power Generation":"Utilities","Aluminum":"Non-Energy Minerals","Apparel/Footwear":"Consumer Non-Durables","Apparel/Footwear Retail":"Retail Trade","Auto Parts: OEM":"Producer Manufacturing","Automotive Aftermarket":"Consumer Durables","Beverages: Alcoholic":"Consumer Non-Durables","Beverages: Non-Alcoholic":"Consumer Non-Durables","Biotechnology":"Health Technology","Broadcasting":"Consumer Services","Building Products":"Producer Manufacturing","Cable/Satellite TV":"Consumer Services","Chemicals: Agricultural":"Process Industries","Chemicals: Major Diversified":"Process Industries","Chemicals: Specialty":"Process Industries","Coal":"Energy Minerals","Commercial Printing/Forms":"Commercial Services","Computer Communications":"Electronic Technology","Computer Peripherals":"Electronic Technology","Construction Materials":"Non-Energy Minerals","Consumer Sundries":"Consumer Non-Durables","Containers/Packaging":"Process Industries","Contract Drilling":"Industrial Services","Data Processing Services":"Technology Services","Department Stores":"Retail Trade","Drugstore Chains":"Retail Trade","Electric Utilities":"Utilities","Electrical Products":"Producer Manufacturing","Electronic Components":"Electronic Technology","Electronic Equipment/Instruments":"Electronic Technology","Electronic production equipment":"Electronic Technology","Electronics Distributors":"Distribution Services","Electronics/Appliance Stores":"Retail Trade","Electronics/Appliances":"Consumer Durables","Engineering & Construction":"Industrial Services","Environmental Services":"Industrial Services","Finance/Rental/Leasing":"Finance","Financial Conglomerates":"Finance","Financial Publishing/Services":"Commercial Services","Food Distributors":"Distribution Services","Food Retail":"Retail Trade","Food: Major Diversified":"Consumer Non-Durables","Food: Meat/Fish/Dairy":"Consumer Non-Durables","Food: Specialty/Candy":"Consumer Non-Durables","Forest Products":"Non-Energy Minerals","Gas Distributors":"Utilities","Home Furnishings":"Consumer Durables","Home Improvement Chains":"Retail Trade","Homebuilding":"Consumer Durables","Hospital/Nursing Management":"Health Services","Hotels/Resorts/Cruise lines":"Consumer Services","Household/Personal Care":"Consumer Non-Durables","Industrial Conglomerates":"Producer Manufacturing","Industrial Machinery":"Producer Manufacturing","Industrial Specialties":"Process Industries","Information Technology Services":"Technology Services","Integrated Oil":"Energy Minerals","Internet Retail":"Retail Trade","Internet Software/Services":"Technology Services","Investment Banks/Brokers":"Finance","Investment Managers":"Finance","Investment Trusts/Mutual Funds":"Finance","Life/Health Insurance":"Finance","Major Banks":"Finance","Major Telecommunications":"Communications","Marine Shipping":"Transportation","Medical Distributors":"Distribution Services","Medical Specialties":"Health Technology","Medical/Nursing Services":"Health Services","Metal Fabrication":"Producer Manufacturing","Miscellaneous":"Miscellaneous","Miscellaneous Commercial Services":"Commercial Services","Miscellaneous Manufacturing":"Producer Manufacturing","Motor Vehicles":"Consumer Durables","Movies/Entertainment":"Consumer Services","Multi-Line Insurance":"Finance","Office Equipment/Supplies":"Producer Manufacturing","Oil & Gas Pipelines":"Industrial Services","Oil & Gas Production":"Energy Minerals","Oil Refining/Marketing":"Energy Minerals","Oilfield Services/Equipment":"Industrial Services","Other Consumer Services":"Consumer Services","Other Consumer Specialties":"Consumer Durables","Other Metals/Minerals":"Non-Energy Minerals","Other Transportation":"Transportation","Packaged Software":"Technology Services","Personnel Services":"Commercial Services","Pharmaceuticals: Generic":"Health Technology","Pharmaceuticals: Major":"Health Technology","Pharmaceuticals: Other":"Health Technology","Publishing: Newspapers":"Consumer Services","Pulp & Paper":"Process Industries","Railroads":"Transportation","Real Estate Development":"Finance","Real Estate Investment Trusts":"Finance","Recreational Products":"Consumer Durables","Regional Banks":"Finance","Restaurants":"Consumer Services","Semiconductors":"Electronic Technology","Specialty Insurance":"Finance","Specialty Stores":"Retail Trade","Specialty Telecommunications":"Communications","Steel":"Non-Energy Minerals","Telecommunications Equipment":"Electronic Technology","Textiles":"Process Industries","Tobacco":"Consumer Non-Durables","Trucking":"Transportation","Trucks/Construction/Farm Machinery":"Producer Manufacturing","Water Supply & Management":"Utilities","Wholesale Distributors":"Distribution Services","Wireless Telecommunications":"Communications"};
+const GRP={"Advertising/Marketing Services":"Commercial Services","Aerospace & Defence":"Electronic Technology","Agricultural Commodities/Milling":"Process Industries","Air Freight/Couriers":"Transportation","Airlines":"Transportation","Alternative Power Generation":"Utilities","Aluminum":"Non-Energy Minerals","Apparel/Footwear":"Consumer Non-Durables","Apparel/Footwear Retail":"Retail Trade","Auto Parts: OEM":"Producer Manufacturing","Automotive Aftermarket":"Consumer Durables","Beverages: Alcoholic":"Consumer Non-Durables","Beverages: Non-Alcoholic":"Consumer Non-Durables","Biotechnology":"Health Technology","Broadcasting":"Consumer Services","Building Products":"Producer Manufacturing","Cable/Satellite TV":"Consumer Services","Cables & Wires":"Producer Manufacturing","Carbon & Graphite Electrodes":"Process Industries","Chemicals: Agricultural":"Process Industries","Chemicals: Major Diversified":"Process Industries","Chemicals: Specialty":"Process Industries","Coal":"Energy Minerals","Commercial Printing/Forms":"Commercial Services","Computer Communications":"Electronic Technology","Computer Peripherals":"Electronic Technology","Construction Materials":"Non-Energy Minerals","Consumer Sundries":"Consumer Non-Durables","Containers/Packaging":"Process Industries","Contract Drilling":"Industrial Services","Data Processing Services":"Technology Services","Department Stores":"Retail Trade","Drugstore Chains":"Retail Trade","Electric Utilities":"Utilities","Electrical Products":"Producer Manufacturing","Electronic Components":"Electronic Technology","Electronic Equipment/Instruments":"Electronic Technology","Electronic production equipment":"Electronic Technology","Electronics Distributors":"Distribution Services","Electronics/Appliance Stores":"Retail Trade","Electronics/Appliances":"Consumer Durables","Engineering & Construction":"Industrial Services","Environmental Services":"Industrial Services","Finance/Rental/Leasing":"Finance","Financial Conglomerates":"Finance","Financial Publishing/Services":"Commercial Services","Food Distributors":"Distribution Services","Food Retail":"Retail Trade","Food: Major Diversified":"Consumer Non-Durables","Food: Meat/Fish/Dairy":"Consumer Non-Durables","Food: Specialty/Candy":"Consumer Non-Durables","Forest Products":"Non-Energy Minerals","Gas Distributors":"Utilities","Home Furnishings":"Consumer Durables","Home Improvement Chains":"Retail Trade","Homebuilding":"Consumer Durables","Hospital/Nursing Management":"Health Services","Hotels/Resorts/Cruise lines":"Consumer Services","Household/Personal Care":"Consumer Non-Durables","Industrial Conglomerates":"Producer Manufacturing","Industrial Machinery":"Producer Manufacturing","Industrial Specialties":"Process Industries","Information Technology Services":"Technology Services","Integrated Oil":"Energy Minerals","Internet Retail":"Retail Trade","Internet Software/Services":"Technology Services","Investment Banks/Brokers":"Finance","Investment Managers":"Finance","Investment Trusts/Mutual Funds":"Finance","Life/Health Insurance":"Finance","Major Banks":"Finance","Major Telecommunications":"Communications","Marine Shipping":"Transportation","Medical Distributors":"Distribution Services","Medical Specialties":"Health Technology","Medical/Nursing Services":"Health Services","Metal Fabrication":"Producer Manufacturing","Miscellaneous":"Miscellaneous","Miscellaneous Commercial Services":"Commercial Services","Miscellaneous Manufacturing":"Producer Manufacturing","Motor Vehicles":"Consumer Durables","Movies/Entertainment":"Consumer Services","Multi-Line Insurance":"Finance","Office Equipment/Supplies":"Producer Manufacturing","Oil & Gas Pipelines":"Industrial Services","Oil & Gas Production":"Energy Minerals","Oil Refining/Marketing":"Energy Minerals","Oilfield Services/Equipment":"Industrial Services","Other Consumer Services":"Consumer Services","Other Consumer Specialties":"Consumer Durables","Other Metals/Minerals":"Non-Energy Minerals","Other Transportation":"Transportation","Packaged Software":"Technology Services","Paints & Coatings":"Process Industries","Personnel Services":"Commercial Services","Pharmaceuticals: Generic":"Health Technology","Pharmaceuticals: Major":"Health Technology","Pharmaceuticals: Other":"Health Technology","Public Sector Banks":"Finance","Publishing: Newspapers":"Consumer Services","Pulp & Paper":"Process Industries","Railroads":"Transportation","Railways":"Transportation","Real Estate Development":"Finance","Real Estate Investment Trusts":"Finance","Recreational Products":"Consumer Durables","Regional Banks":"Finance","Restaurants":"Consumer Services","Semiconductors":"Electronic Technology","Solar Energy":"Utilities","Specialty Insurance":"Finance","Specialty Stores":"Retail Trade","Specialty Telecommunications":"Communications","Steel":"Non-Energy Minerals","Sugar":"Process Industries","Telecommunications Equipment":"Electronic Technology","Textiles":"Process Industries","Tobacco":"Consumer Non-Durables","Trucking":"Transportation","Trucks/Construction/Farm Machinery":"Producer Manufacturing","Water Supply & Management":"Utilities","Wholesale Distributors":"Distribution Services","Wireless Telecommunications":"Communications"};
 function buildGroups(m){
   const map={};
   if(!GRP._ci){ GRP._ci={}; for(const k in GRP) if(k!=="_ci") GRP._ci[k.toLowerCase()]=GRP[k]; }
@@ -986,7 +996,8 @@ function render(){
   $("pview").classList.toggle('hide',!patMode);
   { const pg=document.getElementById("patgrid"); if(pg && !(patMode&&S.patView==="charts")){ pg.style.display="none"; clearLwc(); } }
   $("xall").classList.toggle('hide', patMode || S.view!=="sectors");
-  $("viewctl").classList.toggle('hide',patMode);
+  $("viewctl").classList.remove('hide');   // VIEW stays visible — clicking a view exits pattern mode
+  document.querySelectorAll('#view button').forEach(b=>b.classList.toggle('on',!patMode&&b.dataset.v===S.view));
   { const hp=document.getElementById("pulse"); if(hp) hp.style.display=(S.view==="rotation" && !patMode)?"none":""; }
   { const hideRot = S.view!=="rotation" || patMode;
     const rw=document.getElementById("rotwrap"); if(rw && hideRot) rw.style.display="none"; if(hideRot) $("body").parentElement.style.display=""; }
@@ -1141,7 +1152,7 @@ function setActive(sel,attr,val){ document.querySelectorAll(sel).forEach(b=>b.cl
 // events
 $("market").onclick=e=>{const b=e.target.closest('button');if(!b)return;S.market=b.dataset.m;S.patterns.clear();S.open.clear();S.limit=300;setActive('#market button','m',S.market);buildBench();render();syncFilterUI();};
 $("patbox").onclick=e=>{const p=e.target.closest('.pat');if(!p||p.classList.contains('soon'))return;const k=p.dataset.p;S.patterns.has(k)?S.patterns.delete(k):S.patterns.add(k);render();};
-$("view").onclick=e=>{const b=e.target.closest('button');if(!b)return;S.view=b.dataset.v;S.limit=300;const rw=document.getElementById("rotwrap");if(rw)rw.style.display="none";$("body").parentElement.style.display="";setActive('#view button','v',S.view);render();};
+$("view").onclick=e=>{const b=e.target.closest('button');if(!b)return;S.view=b.dataset.v;S.patterns.clear();buildPatterns();S.limit=300;const rw=document.getElementById("rotwrap");if(rw)rw.style.display="none";$("body").parentElement.style.display="";setActive('#view button','v',S.view);render();};
 $("xall").onclick=e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.x==="expand") mk[S.market].sectors.forEach(s=>S.open.add(s.name)); else S.open.clear();
   renderSectors();};
