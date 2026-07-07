@@ -110,7 +110,10 @@ tr.open .exp{transform:rotate(90deg);color:var(--accent)}
 .badge{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:11px;letter-spacing:.4px;padding:4px 9px;border-radius:6px}
 .badge.watch{background:var(--watch-bg);color:var(--watch)}
 .badge.buy{background:var(--buy-bg);color:var(--buy)}
-.badge.run{background:transparent;color:#22c55e;border:1px dashed rgba(34,197,94,.55)}
+.badge.run{background:transparent;border:1px dashed currentColor}
+.badge.run.r-up{color:#22c55e}
+.badge.run.r-down{color:var(--red)}
+.badge.run.r-muted{color:var(--muted)}
 .entinfo{display:inline-block;margin-left:8px;font-size:10.5px;color:var(--muted);font-family:'IBM Plex Mono',ui-monospace,monospace;white-space:nowrap}
 .entinfo b{color:var(--text);font-weight:600}
 .entinfo.fresh{color:var(--green)}
@@ -132,10 +135,10 @@ tr.open .exp{transform:rotate(90deg);color:var(--accent)}
 .rotcol .rotitem:hover{border-color:var(--accent)}
 .rotitem .nm{font-weight:700;font-size:13.5px}
 .rotitem .meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:5px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono'}
-.rotitem .mstats{display:flex;gap:8px;align-items:center;min-width:0;overflow:hidden;
-  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 14px),transparent)}
+.rotitem .mstats{display:flex;gap:8px;align-items:center;min-width:0;overflow:hidden}
 .rotitem .mstats>span{white-space:nowrap;font-size:10.5px}
 .rotitem .meta .tchip{flex:none;white-space:nowrap}
+.rotitem .rc-n{flex:none;font-size:10px;color:var(--muted);background:var(--sub);border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-family:'IBM Plex Mono',ui-monospace,monospace}
 .rotitem .tchip{padding:1px 7px;border-radius:6px;border:1px solid var(--border2);font-size:10.5px;font-weight:700;color:var(--text)}
 .rotitem .pday{margin-left:auto;font-family:'IBM Plex Mono';font-size:12px;font-weight:700}
 .edtag{display:inline-flex;align-items:center;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.3px;background:rgba(255,190,70,.14);color:var(--yellow);border:1px solid rgba(255,190,70,.35);vertical-align:1px;cursor:help;white-space:nowrap}
@@ -287,7 +290,7 @@ input[type=range]{accent-color:var(--accent)}
 <body>
 
 <div class="top">
-  <div class="brand"><span class="logo"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#4a3fa0"/><stop offset="1" stop-color="#8b7ff0"/></linearGradient></defs><rect x="3" y="3" width="94" height="94" rx="26" fill="url(#lg)"/><g fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 70 L44 51 L56 61 L74 34"/><path d="M74 34 L60 34 M74 34 L74 48"/></g></svg></span> Momentum Cockpit <small>sector strength · pattern setups</small></div>
+  <div class="brand" id="brand" title="Home — back to Rotation" style="cursor:pointer"><span class="logo"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#4a3fa0"/><stop offset="1" stop-color="#8b7ff0"/></linearGradient></defs><rect x="3" y="3" width="94" height="94" rx="26" fill="url(#lg)"/><g fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 70 L44 51 L56 61 L74 34"/><path d="M74 34 L60 34 M74 34 L74 48"/></g></svg></span> Momentum Cockpit <small>sector strength · pattern setups</small></div>
   <div class="spacer"></div>
   <div class="market" id="market"></div>
   <button class="iconbtn" id="theme" title="Toggle light / dark">☾</button>
@@ -473,9 +476,9 @@ function tmSquarify(items,x,y,w,h,out){
 const tmColMom=m=>m>=25?["#97C459","#173404"]:m>=10?["#C0DD97","#173404"]:m>=0?["#EAF3DE","#27500A"]:m>=-10?["#FCEBEB","#791F1F"]:m>=-25?["#F7C1C1","#501313"]:["#F09595","#501313"];
 const tmColToday=v=>v>=3?["#30cc5a","#fff"]:v>=1.5?["#2f9e4f","#fff"]:v>=0.5?["#35764e","#fff"]:v>-0.5?["#414554","#fff"]:v>-1.5?["#8b444e","#fff"]:v>-3?["#bf4045","#fff"]:["#f63538","#fff"];
 const ROTQ=[
- {q:"lead",t:"LEADING",s:"Strong RS, momentum rising \u2014 ride these",c:"var(--green)",f:g=>g.rs>=50&&g.drs>=0},
+ {q:"lead",t:"LEADING",s:"Strong RS, momentum rising \u2014 ride these",c:"var(--green)",f:g=>g.rs>=50&&g.drs>=0&&(g.rsPart==null||g.rsPart>50)},
  {q:"impr",t:"IMPROVING",s:"RS building from below \u2014 tomorrow's leaders",c:"var(--accent)",f:g=>g.rs<50&&g.drs>=0},
- {q:"weak",t:"WEAKENING",s:"Still strong, momentum fading \u2014 tighten stops",c:"var(--yellow)",f:g=>g.rs>=50&&g.drs<0},
+ {q:"weak",t:"WEAKENING",s:"Still strong, momentum fading \u2014 tighten stops",c:"var(--yellow)",f:g=>g.rs>=50&&(g.drs<0||(g.drs>=0&&g.rsPart!=null&&g.rsPart<=50))},
  {q:"lagg",t:"LAGGING",s:"Weak and slipping \u2014 avoid fresh longs",c:"var(--red)",f:g=>g.rs<50&&g.drs<0}];
 function renderRotation(){
   const m=mk[S.market];
@@ -515,11 +518,12 @@ function renderRotation(){
     const items=gs.map(g=>{
       const top=g.stocks[0]||{};
       return `<div class="rotitem" data-rot="${g.name}">
-        <div style="display:flex;align-items:center"><span class="nm">${g.name}</span>
+        <div style="display:flex;align-items:center;gap:7px"><span class="nm">${g.name}</span><span class="rc-n" title="stocks in this group">${g.n??""}</span>
           <span class="pay" style="margin-left:auto;font-family:'IBM Plex Mono';font-weight:700;font-size:12px;color:${g.today>0?'var(--green)':g.today<0?'var(--red)':'var(--muted)'}">${g.today!=null?(g.today>0?'+':'')+g.today.toFixed(1)+'%':''}</span></div>
         <div class="meta"><span class="mstats">
           <span title="Sector RS rank (0-99)">RS <b style="color:var(--text)">${g.rs}</b></span>
           <span title="RS momentum vs ~5 bars ago" style="color:${g.drs>=0?'var(--green)':'var(--red)'}">Mom ${g.drs>0?'+':''}${g.drs}</span>
+          <span title="% of members with RS>=50 — broad strength. Leading needs >50%." style="color:${g.rsPart>=60?'var(--green)':g.rsPart<=40?'var(--red)':'var(--muted)'}">${g.rsPart!=null?g.rsPart+'% RS≥50':''}</span>
           <span title="% of members above their 20EMA (participation)" style="color:${g.a20>=70?'var(--green)':g.a20<35?'var(--red)':'var(--muted)'}">${g.a20!=null?g.a20+'% >20E':''}</span>
           <span title="Sector 5-day relative volume">${g.relvol!=null?rvx(g.relvol)+' vol':''}</span></span>
           ${top.sym?`<span class="tchip" title="Top member by RS">⭐ ${top.sym}</span>`:''}
@@ -532,10 +536,11 @@ function renderRotation(){
   let rw=document.getElementById("rotwrap");
   if(!rw){ rw=document.createElement("div"); rw.id="rotwrap"; rw.className="rotwrap"; document.querySelector(".scroll").appendChild(rw); }
   rw.style.display="grid"; rw.innerHTML=cols;
-  $("foot").innerHTML=`Rotation map of the <b>34 sectors</b> — the four quadrants are RS level (strong/weak vs ${mk[S.market].benchmarks[S.bench]}) crossed with RS momentum (rising/fading). Rotation usually runs Improving → Leading → Weakening → Lagging — catch sectors as they cross into Leading, tighten up as they slip into Weakening. Click any sector or industry to open it in the Sectors view.`;
+  $("foot").innerHTML=`Rotation map of the <b>34 sectors</b> — the four quadrants are median RS level (strong/weak vs ${mk[S.market].benchmarks[S.bench]}) crossed with RS momentum (rising/fading). Rotation usually runs Improving → Leading → Weakening → Lagging — catch sectors as they cross into Leading, tighten up as they slip into Weakening. Click any sector or industry to open it in the Sectors view.`;
 }
 const quadBadge = x=>{ if(x.rs==null||x.drs==null) return '';
-  const [t,c] = x.rs>=50 ? (x.drs>=0?["Leading","var(--green)"]:["Weakening","var(--yellow)"])
+  const strongPart = x.rsPart==null||x.rsPart>50;
+  const [t,c] = x.rs>=50 ? ((x.drs>=0&&strongPart)?["Leading","var(--green)"]:["Weakening","var(--yellow)"])
                          : (x.drs>=0?["Improving","var(--accent)"]:["Lagging","var(--red)"]);
   return `<span class="quad" style="color:${c};border-color:${c}" title="RS ${x.rs} · Δ${x.drs>0?'+':''}${x.drs} — RRG-style rotation tag">${t}</span>`; };
 function rsi14(c,step){
@@ -616,7 +621,7 @@ function renderSectors(){
       const byName={}; mk[S.market].sectors.forEach(x=>byName[x.name]=x);
       const kids=s.inds.map(n=>byName[n]).filter(Boolean)
         .sort((a,b)=>(b.rs??-1)-(a.rs??-1));
-      const qcol=x=>x.rs==null?'var(--muted)':(x.rs>=50?(x.drs>=0?'var(--green)':'var(--yellow)'):(x.drs>=0?'var(--accent)':'var(--red)'));
+      const qcol=x=>x.rs==null?'var(--muted)':(x.rs>=50?((x.drs>=0&&(x.rsPart==null||x.rsPart>50))?'var(--green)':'var(--yellow)'):(x.drs>=0?'var(--accent)':'var(--red)'));
       indChips=`<div class="indmap"><span class="indmap-lbl">${kids.length} ${kids.length===1?'industry':'industries'} in ${s.name} — click to open:</span>
         <div class="indmap-row">${kids.map(k=>`<button class="indchip" data-ind="${k.name}" title="RS ${k.rs??'—'} · ${k.n} stocks · ${k.ret>0?'+':''}${k.ret??''}%">
           <span class="ic-dot" style="background:${qcol(k)}"></span><span class="ic-nm">${k.name}</span>
@@ -735,8 +740,9 @@ function patCell(c,x,i){
     case "sym":  return `<td class="l"><span class="sym">${x.sym}${edTag(x)}${x.elite?` <span title="ELITE fire: entry-bar volume > 2.5x its 20-day average AND RSI >= 78 — this combo won 76% (fail 8%, avg +2.7R) across 12,048 backtested trades" style="cursor:help">🔥</span>`:""}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>`;
     case "sig":{
       if(x.sig==="RUNNING"){ const rn=x.run||{}; const rr=rn.rnow!=null?(rn.rnow>0?"+":"")+rn.rnow+"R":"";
+        const rcol=rn.rnow==null?"muted":rn.rnow>0?"up":rn.rnow<0?"down":"muted";
         const ed=entryDate(x);
-        return `<td class="l"><span class="badge run" title="Open trade — entered at ${rn.entry??"?"}${ed?" on "+ed:""}, ${rn.ago??"?"} bars ago. Still holding above entry; R measured vs the initial stop.">RUNNING<span class="rn">${rr}</span></span><span class="entinfo">${ed?`in since <b>${ed}</b> · `:""}${rn.ago??"?"}b @ ${rn.entry??"—"}${rn.st?` · <b style="color:var(--accent)">${rn.st}</b>`:""}</span></td>`; }
+        return `<td class="l"><span class="badge run r-${rcol}" title="Open trade — entered at ${rn.entry??"?"}${ed?" on "+ed:""}, ${rn.ago??"?"} bars ago. Still holding above entry; R measured vs the initial stop.">RUNNING<span class="rn">${rr}</span></span><span class="entinfo">${ed?`in since <b>${ed}</b> · `:""}${rn.ago??"?"}b @ ${rn.entry??"—"}${rn.st?` · <b style="color:var(--accent)">${rn.st}</b>`:""}</span></td>`; }
       const cls=x.sig==="BUY"?"buy":"watch";const fresh=x.sig==="BUY"?`<span class="entinfo fresh">triggered this scan</span>`:"";const gch=x.g?`<span class="grade g${x.g}" data-tip="Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters (extension, 52w-high pullback, RSI floor, quiet pause volume, sector RS)">${x.g}</span>`:"";return `<td class="l"><span class="badge ${cls}" ${x.sig==="BUY"?'title="Entry is triggering on the latest scanned bar — fresh signal"':''}><span class="dot"></span>${x.sig}</span>${x.sup?'<span class="star">★ SUPER</span>':''}${gch}${fresh}</td>`;}
     case "pat":  return `<td class="l" style="color:var(--muted);font-weight:600">${x.pat}</td>`;
     case "price":return `<td class="num">${fmt(x.price)}</td>`;
@@ -831,7 +837,7 @@ function patChartSvg(x,uid){
   </svg>`;
 }
 function patCard(x,i){
-  const cls=x.sig==="BUY"?"buy":x.sig==="RUNNING"?"run":"watch";
+  const cls=x.sig==="BUY"?"buy":x.sig==="RUNNING"?("run r-"+(x.run&&x.run.rnow!=null?(x.run.rnow>0?"up":x.run.rnow<0?"down":"muted"):"muted")):"watch";
   const g=x.g?`<span class="grade g${x.g}" data-tip="Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters">${x.g}</span>`:"";
   return `<div class="pcard" data-tv="${x.sym}" title="Open ${x.sym} in TradingView">
     <div class="pchead"><span class="badge ${cls}"${x.sig==="RUNNING"?` title="Open trade — entered ${(x.run&&x.run.entry)??"?"} ~${(x.run&&x.run.ago)??"?"} bars ago"`:""}>${x.sig==="RUNNING"?"":`<span class="dot"></span>`}${x.sig}${x.sig==="RUNNING"&&x.run&&x.run.rnow!=null?` <b class="rn">${x.run.rnow>0?"+":""}${x.run.rnow}R</b>`:""}</span>${(x.sig==="WATCH"&&x.totrig!=null&&x.totrig<=0)?`<span class="badge brch" title="${/hum/i.test(x.pat||"")?"Price crossed the buy-stop but the fire gate (vol ≥1× 20MA + RSI ≥50) hasn\u2019t confirmed — by design, quiet breaches are skipped":"Price crossed the level after this scan — confirm the breakout candle on the chart"}">breached</span>`:""}${g}${x.sup?'<span class="star">★ SUPER</span>':""}
@@ -877,7 +883,10 @@ function renderPatterns(){
 function aggSec(sec){
     sec.stocks.sort((a,b)=>(b.rs??-1)-(a.rs??-1));
     const avg=k=>{const v=sec.stocks.map(s=>s[k]).filter(z=>z!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
-    sec.rs=avg("rs")!=null?Math.round(avg("rs")):null; sec.ret=avg("ret")!=null?Math.round(avg("ret")*10)/10:null;
+    { const rv=sec.stocks.map(s=>s.rs).filter(z=>z!=null).sort((a,b)=>a-b);
+      sec.rs = rv.length ? Math.round(rv.length%2 ? rv[(rv.length-1)/2] : (rv[rv.length/2-1]+rv[rv.length/2])/2) : null;   // MEDIAN RS (robust to splits)
+      sec.rsPart = rv.length ? Math.round(rv.filter(v=>v>=50).length/rv.length*100) : null; }                            // % of members with RS>=50
+    sec.ret=avg("ret")!=null?Math.round(avg("ret")*10)/10:null;
     sec.today=avg("today")!=null?Math.round(avg("today")*100)/100:null; sec.n=sec.stocks.length;
     { const rv5=sec.stocks.map(s=>{ if(!s.rvh||!s.rvh.length) return null; const w=s.rvh.slice(-5); return w.reduce((p,c)=>p+c,0)/w.length; }).filter(v=>v!=null);
       sec.relvol=rv5.length?Math.round(rv5.reduce((p,c)=>p+c,0)/rv5.length):null; }
@@ -1045,7 +1054,7 @@ function render(){
   { const hideRot = S.view!=="rotation" || patMode;
     const rw=document.getElementById("rotwrap"); if(rw && hideRot) rw.style.display="none"; if(hideRot) $("body").parentElement.style.display=""; }
   if(patMode){ $("foot").innerHTML=FOOT_PAT; if(!["rs","drs","relvol","rsi","today","price","dist52","totrig","level","sym","sig","coil"].includes(S.sortK)) S.sortK="relvol"; renderPatterns(); }
-  else if(S.view==="rotation"){ renderRotation(); return; }
+  else if(S.view==="rotation"){ renderRotation(); metaLine(); saveHash(); return; }
   else if(S.view==="stocks"){ $("foot").innerHTML=FOOT_STK; if(!["rs","drs","rsi","coil","ret","today","price","mc","relvol","sym","ema","xage","dist52"].includes(S.sortK)) S.sortK="rs"; renderStocks(); }
   else { $("foot").innerHTML=FOOT_SEC; if(S.tf==="1H") S.tf="1D";
   if(!["rs","drs","ret","today","n","name","relvol","rsi","a20","apiv"].includes(S.sortK)) S.sortK="rs"; renderSectors(); }
@@ -1194,7 +1203,7 @@ const FOOT_PAT = `<b>Watch</b> = pattern formed, entry not yet triggered (buy-st
 function setActive(sel,attr,val){ document.querySelectorAll(sel).forEach(b=>b.classList.toggle('on',b.dataset[attr]===val)); }
 // events
 $("market").onclick=e=>{const b=e.target.closest('button');if(!b)return;S.market=b.dataset.m;S.patterns.clear();S.open.clear();S.limit=300;setActive('#market button','m',S.market);buildBench();render();syncFilterUI();};
-$("patbox").onclick=e=>{const p=e.target.closest('.pat');if(!p||p.classList.contains('soon'))return;const k=p.dataset.p;S.patterns.has(k)?S.patterns.delete(k):S.patterns.add(k);render();};
+$("patbox").onclick=e=>{const p=e.target.closest('.pat');if(!p||p.classList.contains('soon'))return;const k=p.dataset.p;S.patterns=S.patterns.has(k)?new Set():new Set([k]);buildPatterns();render();};
 $("view").onclick=e=>{const b=e.target.closest('button');if(!b)return;S.view=b.dataset.v;S.patterns.clear();buildPatterns();S.limit=300;const rw=document.getElementById("rotwrap");if(rw)rw.style.display="none";$("body").parentElement.style.display="";setActive('#view button','v',S.view);render();};
 $("xall").onclick=e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.x==="expand") mk[S.market].sectors.forEach(s=>S.open.add(s.name)); else S.open.clear();
@@ -1295,6 +1304,7 @@ $("body").onclick=e=>{
     return; }
   const tr=e.target.closest('tr.sect');if(!tr)return;const s=tr.dataset.s;S.open.has(s)?S.open.delete(s):S.open.add(s);renderSectors();
 };
+$("brand").onclick=()=>{S.view="rotation";S.patterns.clear();buildPatterns();setActive('#view button','v','rotation');render();window.scrollTo({top:0,behavior:"smooth"});};
 $("theme").onclick=()=>{S.theme=S.theme==="dark"?"light":"dark";document.documentElement.setAttribute('data-theme',S.theme);$("theme").textContent=S.theme==="dark"?"☾":"☀";if(S.patterns.size&&S.patView==="charts")render();};
 
 let LIVE=false, SPARK_BARS=40;
