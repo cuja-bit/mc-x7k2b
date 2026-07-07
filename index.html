@@ -123,9 +123,10 @@ tr.open .exp{transform:rotate(90deg);color:var(--accent)}
 .rotcol .rotitem{background:var(--panel);border:1px solid var(--border);border-radius:9px;margin:7px 9px;padding:11px 14px;cursor:pointer;transition:border-color .12s}
 .rotcol .rotitem:hover{border-color:var(--accent)}
 .rotitem .nm{font-weight:700;font-size:13.5px}
-.rotitem .meta{display:flex;gap:6px 10px;align-items:center;margin-top:5px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono';flex-wrap:wrap}
-.rotitem .meta>span{white-space:nowrap}
-.rotitem .meta .tchip{margin-left:auto}
+.rotitem .meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:5px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono'}
+.rotitem .mstats{display:flex;gap:10px;align-items:center;min-width:0;overflow:hidden}
+.rotitem .mstats>span{white-space:nowrap}
+.rotitem .meta .tchip{flex:none;white-space:nowrap}
 .rotitem .tchip{padding:1px 7px;border-radius:6px;border:1px solid var(--border2);font-size:10.5px;font-weight:700;color:var(--text)}
 .rotitem .pday{margin-left:auto;font-family:'IBM Plex Mono';font-size:12px;font-weight:700}
 .edtag{display:inline-flex;align-items:center;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.3px;background:rgba(255,190,70,.14);color:var(--yellow);border:1px solid rgba(255,190,70,.35);vertical-align:1px;cursor:help;white-space:nowrap}
@@ -208,6 +209,7 @@ tr.subwrap>td{box-shadow:inset 3px 0 0 var(--accent)}
 .pcard:hover{border-color:var(--accent)}
 .pchead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
 .pchead .sym{font-weight:700;font-size:13.5px}
+.badge.brch{background:rgba(234,179,8,.13);color:#eab308;border:1px solid rgba(234,179,8,.35)}
 .pcnm{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:30%}
 .pcpx{margin-left:auto;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;font-weight:600;white-space:nowrap}
 .pchart{width:100%;height:172px;display:block;border-radius:9px;background:var(--panel2);border:1px solid var(--border)}
@@ -490,17 +492,17 @@ function renderRotation(){
     var cols=ctlbar+`<div style="grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;align-items:center">${legend}</div><div style="grid-column:1/-1;position:relative;height:${H}px;overflow:hidden">${tiles}</div>`;
   } else {
   var cols=ctlbar+ROTQ.map(Q=>{
-    const gs=groups.filter(Q.f).sort((a,b)=>(Q.q==="impr"||Q.q==="lead")?(b.drs-a.drs):(a.drs-b.drs));
+    const gs=groups.filter(Q.f).sort((a,b)=>(b.rs-a.rs)||(b.drs-a.drs));   // strongest RS first in every quadrant
     const items=gs.map(g=>{
       const top=g.stocks[0]||{};
       return `<div class="rotitem" data-rot="${g.name}">
         <div style="display:flex;align-items:center"><span class="nm">${g.name}</span>
           <span class="pay" style="margin-left:auto;font-family:'IBM Plex Mono';font-weight:700;font-size:12px;color:${g.today>0?'var(--green)':g.today<0?'var(--red)':'var(--muted)'}">${g.today!=null?(g.today>0?'+':'')+g.today.toFixed(1)+'%':''}</span></div>
-        <div class="meta">
+        <div class="meta"><span class="mstats">
           <span title="Sector RS rank (0-99)">RS <b style="color:var(--text)">${g.rs}</b></span>
           <span title="RS momentum vs ~5 bars ago" style="color:${g.drs>=0?'var(--green)':'var(--red)'}">Mom ${g.drs>0?'+':''}${g.drs}</span>
           <span title="% of members above their 20EMA (participation)" style="color:${g.a20>=70?'var(--green)':g.a20<35?'var(--red)':'var(--muted)'}">${g.a20!=null?g.a20+'% >20E':''}</span>
-          <span title="Sector 5-day relative volume">${g.relvol!=null?rvx(g.relvol)+' vol':''}</span>
+          <span title="Sector 5-day relative volume">${g.relvol!=null?rvx(g.relvol)+' vol':''}</span></span>
           ${top.sym?`<span class="tchip" title="Top member by RS">⭐ ${top.sym}</span>`:''}
         </div></div>`; }).join("");
     return `<div class="rotcol" style="border-top:3px solid ${Q.c}"><div class="rothd" style="color:${Q.c}">
@@ -744,9 +746,15 @@ function lwcChart(el,x){
   if(x.bx&&x.bx.length===4){ const [top,bot,agoS,agoE]=x.bx, n=b.length;
     const i0=Math.max(0,n-1-agoS), i1=Math.max(i0,Math.min(n-1,n-1-agoE));
     if(i1>i0){ const seg=p=>b.slice(i0,i1+1).map(r=>({time:r[0],value:p}));
-      [top,bot].forEach(p=>{ const bl=ch.addSeries(LightweightCharts.LineSeries,{ color:th.accent,
+      const BOXC='#2962ff';                                              // classic Darvas blue
+      const band=ch.addSeries(LightweightCharts.BaselineSeries,{ baseValue:{type:'price',price:bot},
+        topLineColor:BOXC, topFillColor1:'rgba(41,98,255,.16)', topFillColor2:'rgba(41,98,255,.07)',
+        bottomLineColor:'rgba(0,0,0,0)', bottomFillColor1:'rgba(0,0,0,0)', bottomFillColor2:'rgba(0,0,0,0)',
         lineWidth:1, priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
-        bl.setData(seg(p)); }); } }
+      band.setData(seg(top));                                            // fills bot -> top = the box
+      const bl=ch.addSeries(LightweightCharts.LineSeries,{ color:BOXC, lineWidth:1,
+        priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
+      bl.setData(seg(bot)); } }
   ch.timeScale().fitContent();
   LWC_INST.push(ch);
 }
@@ -775,7 +783,7 @@ function patCard(x,i){
   const cls=x.sig==="BUY"?"buy":"watch";
   const g=x.g?`<span class="grade g${x.g}" data-tip="Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters">${x.g}</span>`:"";
   return `<div class="pcard" data-tv="${x.sym}" title="Open ${x.sym} in TradingView">
-    <div class="pchead"><span class="badge ${cls}"><span class="dot"></span>${x.sig}</span>${g}${x.sup?'<span class="star">★ SUPER</span>':""}
+    <div class="pchead"><span class="badge ${cls}"><span class="dot"></span>${x.sig}</span>${(x.sig==="WATCH"&&x.totrig!=null&&x.totrig<=0)?`<span class="badge brch" title="${/hum/i.test(x.pat||"")?"Price crossed the buy-stop but the fire gate (vol ≥1× 20MA + RSI ≥50) hasn\u2019t confirmed — by design, quiet breaches are skipped":"Price crossed the level after this scan — confirm the breakout candle on the chart"}">breached</span>`:""}${g}${x.sup?'<span class="star">★ SUPER</span>':""}
       <span class="sym">${x.sym}${x.elite?" 🔥":""}</span><span class="pcnm">${x.nm||""}</span>${edTag(x)}
       <span class="pcpx">${fmt(x.price)} <b class="${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</b></span></div>
     ${(x.ohlc&&x.ohlc.length>=10&&window.LightweightCharts)?`<div class="lwc" data-ci="${i}"></div>`:patChartSvg(x,i)}
@@ -827,36 +835,12 @@ function aggSec(sec){
       const p=sec.stocks.filter(x=>x.ap!=null); sec.apiv=p.length?Math.round(p.filter(x=>x.ap===1).length/p.length*100):null; }
     sec.drs=avg("drs")!=null?Math.round(avg("drs")):null;
 }
-const GRP={"Major banks":"Private Banks","Regional banks":"Private Banks","Public Sector Banks":"PSU Banks",
-"Finance/Rental/Leasing":"NBFC & Fin Services","Financial conglomerates":"NBFC & Fin Services","Financials":"NBFC & Fin Services","Investment banks/Brokers":"NBFC & Fin Services","Investment managers":"NBFC & Fin Services","Investment trusts":"NBFC & Fin Services",
-"Life/Health insurance":"Insurance","Motor vehicles":"Auto","Auto parts":"Auto Ancillary","Automotive aftermarket":"Auto Ancillary",
-"Pharmaceuticals":"Pharma & Healthcare","Pharma & Healthcare":"Pharma & Healthcare","Hospital/Nursing management":"Pharma & Healthcare","Medical/Nursing services":"Pharma & Healthcare",
-"Chemicals":"Chemicals","Industrial specialties":"Chemicals","Carbon & Graphite Electrodes":"Chemicals","Paints & Coatings":"Chemicals",
-"Agricultural commodities/Milling":"Agri & Food","Sugar":"Sugar",
-"Household/Personal care":"FMCG","Consumer Staples":"FMCG","Beverages":"Beverages","Food":"FMCG",
-"Information technology services":"IT & Software","Packaged software":"IT & Software","Internet software/Services":"Internet & Platforms",
-"Electronic production equipment":"Electronics & EMS","Electronic equipment/Instruments":"Electronics & EMS",
-"Electronics/Appliances":"Consumer Durables","Home furnishings":"Consumer Durables","Other consumer specialties":"Consumer Durables",
-"Industrial machinery":"Capital Goods","Trucks/Construction/Farm machinery":"Capital Goods","Miscellaneous manufacturing":"Capital Goods","Electrical products":"Capital Goods","Metal fabrication":"Capital Goods",
-"Cables & Wires":"Cables & Wires","Aerospace & Defence":"Defence & Aerospace","Railways":"Railways",
-"Engineering & construction":"Infra & Construction","Construction materials":"Cement & Building Mat","Building products":"Cement & Building Mat",
-"Real estate development":"Real Estate","Real estate investment trusts":"Real Estate","Homebuilding":"Real Estate",
-"Steel":"Metals & Mining","Aluminum":"Metals & Mining","Other metals/Minerals":"Metals & Mining",
-"Oil refining/Marketing":"Oil & Gas","Energy":"Oil & Gas","Gas distributors":"Gas Distribution",
-"Electric utilities":"Power & Utilities","Water Supply & Management":"Power & Utilities",
-"Solar Energy":"Renewables","Alternative power generation":"Renewables",
-"Major telecommunications":"Telecom","Telecommunications equipment":"Telecom",
-"Broadcasting":"Media & Entertainment","Movies/Entertainment":"Media & Entertainment",
-"Retail":"Retail","Specialty stores":"Retail","Apparel/Footwear retail":"Retail",
-"Distribution":"Trading & Distribution","Wholesale distributors":"Trading & Distribution",
-"Textiles":"Textiles & Apparel","Apparel/Footwear":"Textiles & Apparel",
-"Hotels/Resorts/Cruise lines":"Hotels & Travel","Restaurants":"Hotels & Travel",
-"Air freight/Couriers":"Logistics & Shipping","Other transportation":"Logistics & Shipping","Shipping":"Logistics & Shipping",
-"Containers/Packaging":"Packaging & Paper","Pulp & paper":"Packaging & Paper",
-"Commercial Services":"Services","Miscellaneous commercial services":"Services","Consumer Services":"Services","Industrial Services":"Services","Office equipment/Supplies":"Services"};
+const GRP={"Advertising/Marketing Services":"Commercial Services","Aerospace & Defence":"Electronic Technology","Agricultural Commodities/Milling":"Process Industries","Air Freight/Couriers":"Transportation","Airlines":"Transportation","Alternative Power Generation":"Utilities","Aluminum":"Non-Energy Minerals","Apparel/Footwear":"Consumer Non-Durables","Apparel/Footwear Retail":"Retail Trade","Auto Parts: OEM":"Producer Manufacturing","Automotive Aftermarket":"Consumer Durables","Beverages: Alcoholic":"Consumer Non-Durables","Beverages: Non-Alcoholic":"Consumer Non-Durables","Biotechnology":"Health Technology","Broadcasting":"Consumer Services","Building Products":"Producer Manufacturing","Cable/Satellite TV":"Consumer Services","Chemicals: Agricultural":"Process Industries","Chemicals: Major Diversified":"Process Industries","Chemicals: Specialty":"Process Industries","Coal":"Energy Minerals","Commercial Printing/Forms":"Commercial Services","Computer Communications":"Electronic Technology","Computer Peripherals":"Electronic Technology","Construction Materials":"Non-Energy Minerals","Consumer Sundries":"Consumer Non-Durables","Containers/Packaging":"Process Industries","Contract Drilling":"Industrial Services","Data Processing Services":"Technology Services","Department Stores":"Retail Trade","Drugstore Chains":"Retail Trade","Electric Utilities":"Utilities","Electrical Products":"Producer Manufacturing","Electronic Components":"Electronic Technology","Electronic Equipment/Instruments":"Electronic Technology","Electronic production equipment":"Electronic Technology","Electronics Distributors":"Distribution Services","Electronics/Appliance Stores":"Retail Trade","Electronics/Appliances":"Consumer Durables","Engineering & Construction":"Industrial Services","Environmental Services":"Industrial Services","Finance/Rental/Leasing":"Finance","Financial Conglomerates":"Finance","Financial Publishing/Services":"Commercial Services","Food Distributors":"Distribution Services","Food Retail":"Retail Trade","Food: Major Diversified":"Consumer Non-Durables","Food: Meat/Fish/Dairy":"Consumer Non-Durables","Food: Specialty/Candy":"Consumer Non-Durables","Forest Products":"Non-Energy Minerals","Gas Distributors":"Utilities","Home Furnishings":"Consumer Durables","Home Improvement Chains":"Retail Trade","Homebuilding":"Consumer Durables","Hospital/Nursing Management":"Health Services","Hotels/Resorts/Cruise lines":"Consumer Services","Household/Personal Care":"Consumer Non-Durables","Industrial Conglomerates":"Producer Manufacturing","Industrial Machinery":"Producer Manufacturing","Industrial Specialties":"Process Industries","Information Technology Services":"Technology Services","Integrated Oil":"Energy Minerals","Internet Retail":"Retail Trade","Internet Software/Services":"Technology Services","Investment Banks/Brokers":"Finance","Investment Managers":"Finance","Investment Trusts/Mutual Funds":"Finance","Life/Health Insurance":"Finance","Major Banks":"Finance","Major Telecommunications":"Communications","Marine Shipping":"Transportation","Medical Distributors":"Distribution Services","Medical Specialties":"Health Technology","Medical/Nursing Services":"Health Services","Metal Fabrication":"Producer Manufacturing","Miscellaneous":"Miscellaneous","Miscellaneous Commercial Services":"Commercial Services","Miscellaneous Manufacturing":"Producer Manufacturing","Motor Vehicles":"Consumer Durables","Movies/Entertainment":"Consumer Services","Multi-Line Insurance":"Finance","Office Equipment/Supplies":"Producer Manufacturing","Oil & Gas Pipelines":"Industrial Services","Oil & Gas Production":"Energy Minerals","Oil Refining/Marketing":"Energy Minerals","Oilfield Services/Equipment":"Industrial Services","Other Consumer Services":"Consumer Services","Other Consumer Specialties":"Consumer Durables","Other Metals/Minerals":"Non-Energy Minerals","Other Transportation":"Transportation","Packaged Software":"Technology Services","Personnel Services":"Commercial Services","Pharmaceuticals: Generic":"Health Technology","Pharmaceuticals: Major":"Health Technology","Pharmaceuticals: Other":"Health Technology","Publishing: Newspapers":"Consumer Services","Pulp & Paper":"Process Industries","Railroads":"Transportation","Real Estate Development":"Finance","Real Estate Investment Trusts":"Finance","Recreational Products":"Consumer Durables","Regional Banks":"Finance","Restaurants":"Consumer Services","Semiconductors":"Electronic Technology","Specialty Insurance":"Finance","Specialty Stores":"Retail Trade","Specialty Telecommunications":"Communications","Steel":"Non-Energy Minerals","Telecommunications Equipment":"Electronic Technology","Textiles":"Process Industries","Tobacco":"Consumer Non-Durables","Trucking":"Transportation","Trucks/Construction/Farm Machinery":"Producer Manufacturing","Water Supply & Management":"Utilities","Wholesale Distributors":"Distribution Services","Wireless Telecommunications":"Communications"};
 function buildGroups(m){
   const map={};
-  m.sectors.forEach(sec=>{ const g=GRP[sec.name]||"Other";
+  if(!GRP._ci){ GRP._ci={}; for(const k in GRP) if(k!=="_ci") GRP._ci[k.toLowerCase()]=GRP[k]; }
+  const grpOf=name=>GRP[name]||GRP._ci[(name||"").toLowerCase()]||"Miscellaneous";
+  m.sectors.forEach(sec=>{ const g=grpOf(sec.name);
     (map[g]=map[g]||{name:g,stocks:[]}).stocks.push(...sec.stocks.map(x=>({...x}))); });
   const out=Object.values(map); out.forEach(aggSec); return out;
 }
