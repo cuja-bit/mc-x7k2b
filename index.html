@@ -49,6 +49,7 @@ body{padding:18px 20px 60px;max-width:1680px;margin:0 auto;transition:background
 .bar{display:flex;gap:14px 20px;align-items:center;flex-wrap:wrap;padding:13px 0;border-top:1px solid var(--border)}
 .bar:first-of-type{border-top:none}
 .ctl{display:flex;align-items:center;gap:9px}
+.ctl+.ctl{border-left:1px solid var(--border);padding-left:16px}
 .ctl .lbl{font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);white-space:nowrap}
 .patbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pat{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);
@@ -58,13 +59,13 @@ body{padding:18px 20px 60px;max-width:1680px;margin:0 auto;transition:background
 .pat.soon{color:var(--dim);cursor:not-allowed;opacity:.7}
 .pat .box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;transition:.12s}
 .pat.on .box{background:var(--accent);border-color:var(--accent)}
-.pat.on .box::after{content:"✓";color:#0b0f14;font-size:11px;font-weight:800}
+.pat.on .box::after{content:"✓";color:#fff;font-size:11px;font-weight:800}
 .pat .sb{font-size:9px;font-weight:700;letter-spacing:.5px;background:var(--chip);color:var(--muted);padding:2px 5px;border-radius:4px;text-transform:uppercase}
 
 .seg{display:flex;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:2px}
 .seg button{background:none;border:none;color:var(--muted);font:inherit;font-weight:600;font-size:13px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:.12s}
 .seg button.on{background:var(--accent);color:#fff}
-.seg.sig button.on{background:var(--watch);color:#0b0f14}
+.seg.sig button.on{background:var(--accent);color:#fff}
 .seg button:not(.on):hover{color:var(--text)}
 select.sel,input.txt{background:var(--panel);border:1px solid var(--border);color:var(--text);font:inherit;font-weight:600;font-size:13px;border-radius:8px;cursor:pointer}
 select.sel{padding:7px 28px 7px 11px;appearance:none;
@@ -348,6 +349,7 @@ S.watch=loadWatch(); S.wlOnly=false; S.limit=300;
 S.f={mcLo:0,mcHi:100,prLo:null,prHi:null,rsMin:0,igMin:0,emaMin:0,rvMin:0,d52:null};
 S.xf=+(localStorage.getItem("mcXf")||10); S.xs=+(localStorage.getItem("mcXs")||20);
 S.secGran=localStorage.getItem("mcGran")||"industry";
+S.rotMode=localStorage.getItem("mcRot")||"cards"; S.rotColor=localStorage.getItem("mcRotC")||"mom";
 setTimeout(()=>{ const a=document.getElementById("xfSel"),b=document.getElementById("xsSel"); if(a)a.value=S.xf; if(b)b.value=S.xs; },0);
 function mcBounds(){const m=mk[S.market];return [Math.max(1,m._mcMin||1e7), Math.max(2,m._mcMax||1e13)];}
 function mcFromT(t){const[lo,hi]=mcBounds();return Math.exp(Math.log(lo)+t*(Math.log(hi)-Math.log(lo)));}
@@ -402,17 +404,66 @@ const coilCell = x=>{ const v=x.coil;
   return `<td class="num" style="color:${c};font-weight:${v>=70?700:500}">${x.coiling?'⚡ ':''}${v}</td>`; };
 const drsCell = v => v==null?`<td class="num" style="color:var(--muted)">—</td>`
   :`<td class="num" style="color:${v>0?'var(--green)':v<0?'var(--red)':'var(--muted)'}">${v>0?'▲ +'+v:v<0?'▼ '+v:'0'}</td>`;
+function tmSquarify(items,x,y,w,h,out){
+  if(!items.length)return;
+  if(items.length===1){out.push([items[0],x,y,w,h]);return;}
+  const total=items.reduce((p,c)=>p+c._sz,0);
+  let row=[],rest=items.slice(),best=Infinity;
+  while(rest.length){
+    const trial=[...row,rest[0]];
+    const rs=trial.reduce((p,c)=>p+c._sz,0), side=Math.min(w,h), area=rs/total*w*h, len=area/side||1;
+    const worst=Math.max(...trial.map(it=>{const a=it._sz/total*w*h;const s=a/len||1;return Math.max(len/s,s/len);}));
+    if(worst<=best){best=worst;row=trial;rest.shift();}else break;
+  }
+  const rs=row.reduce((p,c)=>p+c._sz,0), frac=rs/total;
+  if(w>=h){const rw=w*frac;let cy=y;
+    row.forEach(it=>{const rh=it._sz/rs*h;out.push([it,x,cy,rw,rh]);cy+=rh;});
+    tmSquarify(rest,x+rw,y,w-rw,h,out);
+  }else{const rh=h*frac;let cx=x;
+    row.forEach(it=>{const rw=it._sz/rs*w;out.push([it,cx,y,rw,rh]);cx+=rw;});
+    tmSquarify(rest,x,y+rh,w,h-rh,out);}
+}
+const tmColMom=m=>m>=25?["#97C459","#173404"]:m>=10?["#C0DD97","#173404"]:m>=0?["#EAF3DE","#27500A"]:m>=-10?["#FCEBEB","#791F1F"]:m>=-25?["#F7C1C1","#501313"]:["#F09595","#501313"];
+const tmColToday=v=>v>=3?["#30cc5a","#fff"]:v>=1.5?["#2f9e4f","#fff"]:v>=0.5?["#35764e","#fff"]:v>-0.5?["#414554","#fff"]:v>-1.5?["#8b444e","#fff"]:v>-3?["#bf4045","#fff"]:["#f63538","#fff"];
 const ROTQ=[
  {q:"lead",t:"LEADING",s:"Strong RS, momentum rising \u2014 ride these",c:"var(--green)",f:g=>g.rs>=50&&g.drs>=0},
  {q:"impr",t:"IMPROVING",s:"RS building from below \u2014 tomorrow's leaders",c:"var(--accent)",f:g=>g.rs<50&&g.drs>=0},
  {q:"weak",t:"WEAKENING",s:"Still strong, momentum fading \u2014 tighten stops",c:"var(--yellow)",f:g=>g.rs>=50&&g.drs<0},
  {q:"lagg",t:"LAGGING",s:"Weak and slipping \u2014 avoid fresh longs",c:"var(--red)",f:g=>g.rs<50&&g.drs<0}];
 function renderRotation(){
-  const m=mk[S.market]; const groups=(m._groups||[]).filter(g=>g.rs!=null&&g.drs!=null);
-  $("cbarttl").textContent="Rotation"; $("cbardesc").textContent=`34 trader groups · quadrants by RS level × RS momentum · ${TFLBL[S.tf]}`;
-  $("cbarlb").textContent=lbLabel(); $("count").textContent=`${groups.length} groups`; renderAge();
+  const m=mk[S.market];
+  const src=S.secGran==="industry"?(m.sectors||[]):(m._groups||[]);
+  const groups=src.filter(g=>g.rs!=null&&g.drs!=null);
+  $("cbarttl").textContent="Rotation"; $("cbardesc").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"trader groups"} · quadrants by RS level × RS momentum · ${TFLBL[S.tf]}`;
+  $("cbarlb").textContent=lbLabel(); $("count").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"groups"}`; renderAge();
   $("xall").classList.add("hide");
-  const cols=ROTQ.map(Q=>{
+  const ctlbar=`<div style="grid-column:1/-1;display:flex;gap:0;align-items:center;flex-wrap:wrap">
+    <span class="ctl"><span class="lbl">View as</span><span class="seg" id="rotmode"><button data-rm="cards" class="${S.rotMode==="cards"?"on":""}">Cards</button><button data-rm="heat" class="${S.rotMode==="heat"?"on":""}">Heatmap</button></span></span>
+    <span class="ctl"><span class="lbl">Level</span><span class="seg" id="rotgran"><button data-rg="group" class="${S.secGran==="group"?"on":""}">Groups</button><button data-rg="industry" class="${S.secGran==="industry"?"on":""}">Industries</button></span></span>
+    ${S.rotMode==="heat"?`<span class="ctl"><span class="lbl">Color by</span><span class="seg" id="rotcolor"><button data-rc="mom" class="${S.rotColor==="mom"?"on":""}">RS Momentum</button><button data-rc="today" class="${S.rotColor==="today"?"on":""}">Today %</button></span></span>
+    <span class="ctl"><span style="font-size:11px;color:var(--muted)">tile size = stocks · click a tile to open it</span></span>`:""}
+  </div>`;
+  if(S.rotMode==="heat"){
+    const rw0=document.getElementById("rotwrap");
+    const W=Math.max(320,((rw0&&rw0.clientWidth?rw0.clientWidth:document.querySelector(".scroll").clientWidth)||930)-30), H=460;
+    const items=groups.map(g=>({...g,_sz:Math.max(1,g.n||1)})).sort((a,b)=>b._sz-a._sz);
+    const out=[]; tmSquarify(items,0,0,W,H,out);
+    const tiles=out.map(([g,x,y,w2,h2])=>{
+      const v=S.rotColor==="mom"?g.drs:(g.today??0);
+      const [bg,fg]=S.rotColor==="mom"?tmColMom(v):tmColToday(v);
+      const small=w2<90||h2<46;
+      const vtxt=S.rotColor==="mom"?`${g.drs>0?"\u25b2 +":g.drs<0?"\u25bc ":""}${Math.abs(Math.round(g.drs))}`:`${(g.today>0?"+":"")+(g.today!=null?g.today.toFixed(1):"0")}%`;
+      return `<div class="rotitem" data-rot="${g.name}" style="position:absolute;left:${x}px;top:${y}px;width:${Math.max(0,w2-2)}px;height:${Math.max(0,h2-2)}px;background:${bg};color:${fg};border-radius:4px;padding:6px 8px;overflow:hidden;border:none"
+        title="${g.name}: RS ${g.rs}, momentum ${g.drs>0?"+":""}${g.drs}, today ${(g.today>0?"+":"")+(g.today!=null?g.today.toFixed(2):"?")}%, ${g.n} stocks, ${g.a20!=null?g.a20+"% above 20EMA":""}">
+        <div style="font-size:${small?11:12.5}px;font-weight:700;line-height:1.2">${g.name}</div>
+        ${small?"":`<div style="font-family:'IBM Plex Mono';font-size:11.5px;margin-top:2px">${vtxt} \u00b7 RS ${g.rs} \u00b7 ${g.n}</div>`}
+      </div>`; }).join("");
+    const legend=S.rotColor==="mom"
+      ?`<span style="font-size:11px;color:var(--muted)">RS momentum:</span>${[["#F09595","\u2264 -25"],["#F7C1C1","-25\u2026-10"],["#FCEBEB","-10\u20260"],["#EAF3DE","0\u2026+10"],["#C0DD97","+10\u2026+25"],["#97C459","\u2265 +25"]].map(([c,l])=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:2px;background:${c}"></span>${l}</span>`).join("")}`
+      :`<span style="font-size:11px;color:var(--muted)">Today %:</span>${[["#f63538","\u2264 -3"],["#bf4045","-2"],["#8b444e","-1"],["#414554","0"],["#35764e","+1"],["#2f9e4f","+2"],["#30cc5a","\u2265 +3"]].map(([c,l])=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:2px;background:${c}"></span>${l}</span>`).join("")}`;
+    var cols=ctlbar+`<div style="grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;align-items:center">${legend}</div><div style="grid-column:1/-1;position:relative;height:${H}px;overflow:hidden">${tiles}</div>`;
+  } else {
+  var cols=ctlbar+ROTQ.map(Q=>{
     const gs=groups.filter(Q.f).sort((a,b)=>(Q.q==="impr"||Q.q==="lead")?(b.drs-a.drs):(a.drs-b.drs));
     const items=gs.map(g=>{
       const top=g.stocks[0]||{};
@@ -429,6 +480,7 @@ function renderRotation(){
     return `<div class="rotcol" style="border-top:3px solid ${Q.c}"><div class="rothd" style="color:${Q.c}">
       <div><div>${Q.t}</div><div class="sub">${Q.s}</div></div><span class="cnt" style="background:${Q.c}">${gs.length}</span></div>
       ${items||'<div class="rotitem" style="color:var(--muted);cursor:default">— none —</div>'}</div>`; }).join("");
+  }
   $("body").parentElement.style.display="none";
   let rw=document.getElementById("rotwrap");
   if(!rw){ rw=document.createElement("div"); rw.id="rotwrap"; rw.className="rotwrap"; document.querySelector(".scroll").appendChild(rw); }
@@ -468,7 +520,9 @@ function buildPatterns(){
     x.active ? `<div class="pat ${S.patterns.has(k)?'on':''}" data-p="${k}"><span class="box"></span>${x.label}</div>`
              : `<div class="pat soon" data-p="${k}"><span class="box"></span>${x.label}<span class="sb">soon</span></div>`).join("");
 }
-function buildBench(){ if(!mk[S.market].benchmarks[S.bench]) S.bench=0; $("bench").innerHTML = mk[S.market].benchmarks.map((x,i)=>`<option value="${i}" ${i===S.bench?'selected':''}>${x}</option>`).join(""); }
+function benchUsable(m,i){ const n=(m.bench_closes&&m.bench_closes[m.benchmarks[i]]||[]).length; return n>=70; }
+function buildBench(){ if(!mk[S.market].benchmarks[S.bench]) S.bench=0;
+  { const m=mk[S.market]; if(!benchUsable(m,S.bench)){ const ok=m.benchmarks.findIndex((_,i)=>benchUsable(m,i)); if(ok>=0) S.bench=ok; } } $("bench").innerHTML = mk[S.market].benchmarks.map((x,i)=>`<option value="${i}" ${i===S.bench?'selected':''}>${x}</option>`).join(""); }
 
 function lbLabel(){ return S.lbMode==="days" ? `${S.lbDays}-day lookback`
   : `from ${new Date(S.lbDate).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}`; }
@@ -659,18 +713,18 @@ function aggSec(sec){
       const p=sec.stocks.filter(x=>x.ap!=null); sec.apiv=p.length?Math.round(p.filter(x=>x.ap===1).length/p.length*100):null; }
     sec.drs=avg("drs")!=null?Math.round(avg("drs")):null;
 }
-const GRP={"Major banks":"Banks","Regional banks":"Banks","Public Sector Banks":"Banks",
+const GRP={"Major banks":"Private Banks","Regional banks":"Private Banks","Public Sector Banks":"PSU Banks",
 "Finance/Rental/Leasing":"NBFC & Fin Services","Financial conglomerates":"NBFC & Fin Services","Financials":"NBFC & Fin Services","Investment banks/Brokers":"NBFC & Fin Services","Investment managers":"NBFC & Fin Services","Investment trusts":"NBFC & Fin Services",
 "Life/Health insurance":"Insurance","Motor vehicles":"Auto","Auto parts":"Auto Ancillary","Automotive aftermarket":"Auto Ancillary",
 "Pharmaceuticals":"Pharma & Healthcare","Pharma & Healthcare":"Pharma & Healthcare","Hospital/Nursing management":"Pharma & Healthcare","Medical/Nursing services":"Pharma & Healthcare",
 "Chemicals":"Chemicals","Industrial specialties":"Chemicals","Carbon & Graphite Electrodes":"Chemicals","Paints & Coatings":"Chemicals",
-"Agricultural commodities/Milling":"Agri & Food","Sugar":"Agri & Food",
-"Household/Personal care":"FMCG","Consumer Staples":"FMCG","Beverages":"FMCG","Food":"FMCG",
+"Agricultural commodities/Milling":"Agri & Food","Sugar":"Sugar",
+"Household/Personal care":"FMCG","Consumer Staples":"FMCG","Beverages":"Beverages","Food":"FMCG",
 "Information technology services":"IT & Software","Packaged software":"IT & Software","Internet software/Services":"Internet & Platforms",
 "Electronic production equipment":"Electronics & EMS","Electronic equipment/Instruments":"Electronics & EMS",
 "Electronics/Appliances":"Consumer Durables","Home furnishings":"Consumer Durables","Other consumer specialties":"Consumer Durables",
 "Industrial machinery":"Capital Goods","Trucks/Construction/Farm machinery":"Capital Goods","Miscellaneous manufacturing":"Capital Goods","Electrical products":"Capital Goods","Metal fabrication":"Capital Goods",
-"Cables & Wires":"Cables & Wires","Aerospace & Defence":"Defence","Railways":"Railways",
+"Cables & Wires":"Cables & Wires","Aerospace & Defence":"Defence & Aerospace","Railways":"Railways",
 "Engineering & construction":"Infra & Construction","Construction materials":"Cement & Building Mat","Building products":"Cement & Building Mat",
 "Real estate development":"Real Estate","Real estate investment trusts":"Real Estate","Homebuilding":"Real Estate",
 "Steel":"Metals & Mining","Aluminum":"Metals & Mining","Other metals/Minerals":"Metals & Mining",
@@ -812,6 +866,7 @@ function renderAge(){
   el.style.color=s<7200?"var(--muted)":s<21600?"var(--yellow)":"var(--red)";
 }
 setInterval(renderAge,60000);
+let _rotRz; window.addEventListener("resize",()=>{ clearTimeout(_rotRz); _rotRz=setTimeout(()=>{ if(S.view==="rotation"&&S.rotMode==="heat") render(); },250); });
 const TF_VIEW=[["4H","4H"],["1D","Daily"],["1W","Weekly"],["1M","Monthly"]];   // sector / stock RS views
 const TF_PAT =[["4H","4H"],["1D","Daily"],["1W","Weekly"]];                                  // momentum pattern scans
 function buildTF(patMode){
@@ -827,7 +882,9 @@ function render(){
   document.querySelectorAll('.sigonly').forEach(e=>e.classList.toggle('hide',!patMode));
   $("xall").classList.toggle('hide', patMode || S.view!=="sectors");
   $("viewctl").classList.toggle('hide',patMode);
-  { const rw=document.getElementById("rotwrap"); if(rw && S.view!=="rotation") rw.style.display="none"; if(S.view!=="rotation") $("body").parentElement.style.display=""; }
+  { const hp=document.getElementById("pulse"); if(hp) hp.style.display=(S.view==="rotation" && !patMode)?"none":""; }
+  { const hideRot = S.view!=="rotation" || patMode;
+    const rw=document.getElementById("rotwrap"); if(rw && hideRot) rw.style.display="none"; if(hideRot) $("body").parentElement.style.display=""; }
   if(patMode){ $("foot").innerHTML=FOOT_PAT; if(!["rs","drs","relvol","rsi","today","price","dist52","totrig","level","sym","sig","coil"].includes(S.sortK)) S.sortK="relvol"; renderPatterns(); }
   else if(S.view==="rotation"){ renderRotation(); return; }
   else if(S.view==="stocks"){ $("foot").innerHTML=FOOT_STK; if(!["rs","drs","rsi","coil","ret","today","price","mc","relvol","sym","ema","xage","dist52"].includes(S.sortK)) S.sortK="rs"; renderStocks(); }
@@ -1017,7 +1074,10 @@ document.addEventListener("click",e=>{ const th=e.target.closest(".subtbl th[dat
   render(); });
 $("xfSel").onchange=e=>{ S.xf=+e.target.value; localStorage.setItem("mcXf",S.xf); recalcXage(); render(); };
 $("xsSel").onchange=e=>{ S.xs=+e.target.value; localStorage.setItem("mcXs",S.xs); recalcXage(); render(); };
-document.addEventListener("click",e=>{ const it=e.target.closest(".rotitem[data-rot]"); if(!it)return;
+document.addEventListener("click",e=>{ const rg=e.target.closest("#rotgran button"); if(rg){ S.secGran=rg.dataset.rg; localStorage.setItem("mcGran",S.secGran); render(); return; }
+  const rm=e.target.closest("#rotmode button"); if(rm){ S.rotMode=rm.dataset.rm; localStorage.setItem("mcRot",S.rotMode); render(); return; }
+  const rc=e.target.closest("#rotcolor button"); if(rc){ S.rotColor=rc.dataset.rc; localStorage.setItem("mcRotC",S.rotColor); render(); return; }
+  const it=e.target.closest(".rotitem[data-rot]"); if(!it)return;
   S.view="sectors"; S.secGran="group"; localStorage.setItem("mcGran","group");
   S.open.clear(); S.open.add(it.dataset.rot);
   const rw=document.getElementById("rotwrap"); if(rw)rw.style.display="none"; $("body").parentElement.style.display="";
@@ -1028,6 +1088,7 @@ $("f52").onclick=e=>{ const b=e.target.closest('button'); if(!b)return; S.f.d52=
 $("fclear").onclick=()=>{ S.f={mcLo:0,mcHi:100,prLo:null,prHi:null,rsMin:0,igMin:0,emaMin:0,rvMin:0,d52:null};
 S.xf=+(localStorage.getItem("mcXf")||10); S.xs=+(localStorage.getItem("mcXs")||20);
 S.secGran=localStorage.getItem("mcGran")||"industry";
+S.rotMode=localStorage.getItem("mcRot")||"cards"; S.rotColor=localStorage.getItem("mcRotC")||"mom";
 setTimeout(()=>{ const a=document.getElementById("xfSel"),b=document.getElementById("xsSel"); if(a)a.value=S.xf; if(b)b.value=S.xs; },0);
   try{ $("mclo").value=0; $("mchi").value=100; $("prlo").value=""; $("prhi").value=""; $("frs").value=0; $("fig").value=0;
     setActive('#fema button','e','0'); setActive('#frv button','r','0'); setActive('#f52 button','d',''); }catch(e){}
