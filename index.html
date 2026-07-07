@@ -316,7 +316,7 @@ input[type=range]{accent-color:var(--accent)}
     <span class="ttl" id="cbarttl"></span>
     <span class="desc" id="cbardesc"></span>
     <span class="lb" id="cbarlb"></span>
-    <span class="xall hide" id="xall"><span class="seg" id="sgr" style="margin-right:8px"><button data-g="industry">Industry</button><button data-g="group">Group</button></span><button data-x="expand">Expand all</button><button data-x="collapse">Collapse all</button></span>
+    <span class="xall hide" id="xall"><span class="seg" id="sgr" style="margin-right:8px"><button data-g="industry">Industry</button><button data-g="group">Sector</button></span><button data-x="expand">Expand all</button><button data-x="collapse">Collapse all</button></span>
     <span class="count" id="age" title="Age of the scan these results come from — patterns can expire or fire on the chart after the scan" style="margin-right:8px"></span>
     <span class="count" id="count"></span>
     <button class="csv" id="csv" title="Export the current table as CSV">⬇ CSV</button>
@@ -434,12 +434,12 @@ function renderRotation(){
   const m=mk[S.market];
   const src=S.secGran==="industry"?(m.sectors||[]):(m._groups||[]);
   const groups=src.filter(g=>g.rs!=null&&g.drs!=null);
-  $("cbarttl").textContent="Rotation"; $("cbardesc").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"trader groups"} · quadrants by RS level × RS momentum · ${TFLBL[S.tf]}`;
+  $("cbarttl").textContent="Rotation"; $("cbardesc").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"sectors"} · quadrants by RS level × RS momentum · ${TFLBL[S.tf]}`;
   $("cbarlb").textContent=lbLabel(); $("count").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"groups"}`; renderAge();
   $("xall").classList.add("hide");
   const ctlbar=`<div style="grid-column:1/-1;display:flex;gap:0;align-items:center;flex-wrap:wrap">
     <span class="ctl"><span class="lbl">View as</span><span class="seg" id="rotmode"><button data-rm="cards" class="${S.rotMode==="cards"?"on":""}">Cards</button><button data-rm="heat" class="${S.rotMode==="heat"?"on":""}">Heatmap</button></span></span>
-    <span class="ctl"><span class="lbl">Level</span><span class="seg" id="rotgran"><button data-rg="group" class="${S.secGran==="group"?"on":""}">Groups</button><button data-rg="industry" class="${S.secGran==="industry"?"on":""}">Industries</button></span></span>
+    <span class="ctl"><span class="lbl">Level</span><span class="seg" id="rotgran"><button data-rg="group" class="${S.secGran==="group"?"on":""}">Sectors</button><button data-rg="industry" class="${S.secGran==="industry"?"on":""}">Industries</button></span></span>
     ${S.rotMode==="heat"?`<span class="ctl"><span class="lbl">Color by</span><span class="seg" id="rotcolor"><button data-rc="mom" class="${S.rotColor==="mom"?"on":""}">RS Momentum</button><button data-rc="today" class="${S.rotColor==="today"?"on":""}">Today %</button></span></span>
     <span class="ctl"><span style="font-size:11px;color:var(--muted)">tile size = stocks · click a tile to open it</span></span>`:""}
   </div>`;
@@ -485,7 +485,7 @@ function renderRotation(){
   let rw=document.getElementById("rotwrap");
   if(!rw){ rw=document.createElement("div"); rw.id="rotwrap"; rw.className="rotwrap"; document.querySelector(".scroll").appendChild(rw); }
   rw.style.display="grid"; rw.innerHTML=cols;
-  $("foot").innerHTML=`Rotation map of the <b>34 trader groups</b> — the four quadrants are RS level (strong/weak vs ${mk[S.market].benchmarks[S.bench]}) crossed with RS momentum (rising/fading). Rotation usually runs Improving → Leading → Weakening → Lagging — catch groups as they cross into Leading, tighten up as they slip into Weakening. Click any group to open it in the Sectors view.`;
+  $("foot").innerHTML=`Rotation map of the <b>34 sectors</b> — the four quadrants are RS level (strong/weak vs ${mk[S.market].benchmarks[S.bench]}) crossed with RS momentum (rising/fading). Rotation usually runs Improving → Leading → Weakening → Lagging — catch sectors as they cross into Leading, tighten up as they slip into Weakening. Click any sector or industry to open it in the Sectors view.`;
 }
 const quadBadge = x=>{ if(x.rs==null||x.drs==null) return '';
   const [t,c] = x.rs>=50 ? (x.drs>=0?["Leading","var(--green)"]:["Weakening","var(--yellow)"])
@@ -591,7 +591,7 @@ function mcFmt(v){
   return cr>=1e5 ? "₹"+(cr/1e5).toFixed(2)+"L Cr" : "₹"+Math.round(cr).toLocaleString("en-IN")+" Cr";
 }
 /* ---------- STOCKS MODE (flat RS ranking) ---------- */
-const STKVIEW_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symbol",l:true},{k:"spark",t:"Trend",l:true},{k:"rs",t:"RS",l:true},{k:"drs",t:"RS Momentum"},{k:"rsi",t:"RSI"},{k:"xage",t:"EMA Cross"},{k:"dist52",t:"vs 52W Hi"},{k:"coil",t:"Ignition"},{k:"sector",t:"Sector",l:true},{k:"ret",t:"Lookback Return"},{k:"price",t:"Price"},{k:"mc",t:"Market Cap"},{k:"relvol",t:"Rel Vol"},{k:"today",t:"Today %"},{k:"ema",t:"EMA Trend"}];
+const STKVIEW_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symbol",l:true},{k:"spark",t:"Trend",l:true},{k:"rs",t:"RS",l:true},{k:"drs",t:"RS Momentum"},{k:"rsi",t:"RSI"},{k:"xage",t:"EMA Cross"},{k:"dist52",t:"vs 52W Hi"},{k:"coil",t:"Ignition"},{k:"sector",t:"Industry",l:true},{k:"ret",t:"Lookback Return"},{k:"price",t:"Price"},{k:"mc",t:"Market Cap"},{k:"relvol",t:"Rel Vol"},{k:"today",t:"Today %"},{k:"ema",t:"EMA Trend"}];
 function allStocks(){ let out=[]; mk[S.market].sectors.forEach(s=>s.stocks.forEach(x=>out.push({...x,sector:s.name,srs:s.rs}))); return out; }
 const wlStar = sym=>`<span class="wlstar ${S.watch.has(sym)?'on':''}" data-w="${sym}" title="Toggle watchlist">${S.watch.has(sym)?'★':'☆'}</span>`;
 function stocksRows(){
@@ -637,7 +637,7 @@ function renderStocks(){
 /* ---------- PATTERN MODE ---------- */
 const PAT_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symbol",l:true},{k:"spark",t:"Trend",l:true},{k:"sig",t:"Setup",l:true},{k:"pat",t:"Pattern",l:true},
   {k:"price",t:"Price"},{k:"level",t:"Buy >"},{k:"totrig",t:"To Trigger"},{k:"today",t:"Today %"},{k:"rsi",t:"RSI"},{k:"rs",t:"RS"},{k:"coil",t:"Ignition"},
-  {k:"sector",t:"Sector",l:true},{k:"relvol",t:"Rel Vol"},{k:"dist52",t:"vs 52W Hi"},{k:"ema",t:"EMA Trend"}];
+  {k:"sector",t:"Industry",l:true},{k:"relvol",t:"Rel Vol"},{k:"dist52",t:"vs 52W Hi"},{k:"ema",t:"EMA Trend"}];
 
 function patternRows(){
   let all=[];
@@ -793,13 +793,18 @@ function mansfield(sc,bc,bars){const n=Math.min(sc.length,bc.length);if(n<3)retu
 function recompute(){
   const m=mk[S.market]; if(!m||!m.bench_closes) return;          // sample mode -> keep static values
   const step=S.tf==="1W"?5:S.tf==="1M"?21:1;
-  const bc=stepSample(m.bench_closes[m.benchmarks[S.bench]]||[],step);
   let lb=S.lbDays;
   if(S.lbMode==="date"){lb=Math.max(5,Math.round((Date.now()-new Date(S.lbDate))/864e5*5/7));}
-  const bars=Math.max(3,Math.round(lb/step)); SPARK_BARS=Math.max(8,bars+1);
+  // real 4H mode: use 4H closes (c4 per stock + 4H bench series) when the scan shipped them;
+  // otherwise (old data.json / bench without intraday) fall back to daily silently.
+  const bc4=(S.tf==="4H"&&m.bench_closes_4h)?(m.bench_closes_4h[m.benchmarks[S.bench]]||null):null;
+  const use4=!!(bc4&&bc4.length>=30);
+  const bc=use4?bc4:stepSample(m.bench_closes[m.benchmarks[S.bench]]||[],step);
+  const bars=use4?Math.max(3,Math.round(lb*2)):Math.max(3,Math.round(lb/step));   // ~2 4H bars/session
+  SPARK_BARS=Math.max(8,(use4?Math.max(3,lb):bars)+1);                            // sparklines stay daily
   m.sectors.forEach(sec=>{
     sec.stocks.forEach(x=>{ if(!x.c)return;
-      const sc=stepSample(x.c,step), n=sc.length, j=Math.max(0,n-1-bars);
+      const sc=use4?((x.c4&&x.c4.length>=30)?x.c4:[]):stepSample(x.c,step), n=sc.length, j=Math.max(0,n-1-bars);
       x.rs=mansfield(sc,bc,bars);
       x.ret=(n>1&&sc[j])?Math.round((sc[n-1]-sc[j])/sc[j]*1000)/10:null;
       x.price=Math.round(x.c[x.c.length-1]*100)/100;
@@ -807,7 +812,7 @@ function recompute(){
       x.ema=emaCount(x.c);
       const hi=Math.max(...x.c.slice(-252)); x.dist52=hi?Math.round((x.c[x.c.length-1]-hi)/hi*1000)/10:null;
       x.relvol=x.rv;
-      x.rsi=rsi14(x.c,step);
+      x.rsi=use4?rsi14(sc,1):rsi14(x.c,step);
       x.xage=crossAge(x.c);
       x.drs=null;
       if(x.rs!=null && sc.length>bars+6){ const prev=mansfield(sc.slice(0,-5),bc.slice(0,-5),bars); if(prev!=null) x.drs=x.rs-prev; }
@@ -1028,7 +1033,7 @@ function loadHash(){ try{
   if(q.get('p')) q.get('p').split(',').forEach(k=>{const pp=mk[S.market].patterns[k]; if(pp&&pp.active) S.patterns.add(k);});
 }catch(e){} }
 const FOOT_SEC = `Default view: <b>sectors ranked by Relative Strength</b> vs the selected index. Click any sector to open its <b>top 25 stocks by RS</b>. <b>RS</b> 1–99 (higher = stronger); the bar visualises it. <b>EMA Trend</b> = how many of 9/20/50/200 the price sits above. <b>Lookback Return</b> = price change over the chosen lookback. The chart icon opens the symbol in TradingView. Switch to <b>Stocks</b> for a flat ranking, or tick a pattern to scan setups. <b>RS Momentum</b> = RS momentum vs ~5 bars ago; the rotation tag (Leading / Improving / Weakening / Lagging) combines RS level with it, RRG-style. The strip up top shows market breadth. <b>⬇ CSV</b> exports the current table.`;
-const FOOT_STK = `<b>Stocks view</b>: every stock ranked by <b>Relative Strength</b> vs the selected index, ties broken by lookback return. The <b>Sector</b> column shows each stock's group and its strength (pip) — <b>click a sector</b> to jump to that sector's view. Hover the ⓘ on any header for what it means. <b>★</b> pins a stock to your watchlist (saved in this browser); the ★ button beside the filter shows watchlist only. <b>Market Pulse</b> (the dial up top, mirrored in the corner pill) is the regime gate: green = press longs, yellow = half size and A+ only, red = breakouts are squatting, stand aside — hover each component for the evidence. <b>Filters</b> (button beside the search box) refines the list by market cap, price, RS, Ignition, EMA alignment, volume and distance from the 52-week high — the header count updates live. <b>Ignition</b> (0–100) hunts <i>upcoming</i> momentum: volatility squeeze near highs + rising RS + volume dry-up — sort by it to get the coil-watch list before the breakout; <b>⚡</b> marks fully coiled names. The chart icon opens the symbol in TradingView.`;
+const FOOT_STK = `<b>Stocks view</b>: every stock ranked by <b>Relative Strength</b> vs the selected index, ties broken by lookback return. The <b>Industry</b> column shows each stock's industry and its strength (pip) — <b>click an industry</b> to jump to it in the Sectors view. Hover the ⓘ on any header for what it means. <b>★</b> pins a stock to your watchlist (saved in this browser); the ★ button beside the filter shows watchlist only. <b>Market Pulse</b> (the dial up top, mirrored in the corner pill) is the regime gate: green = press longs, yellow = half size and A+ only, red = breakouts are squatting, stand aside — hover each component for the evidence. <b>Filters</b> (button beside the search box) refines the list by market cap, price, RS, Ignition, EMA alignment, volume and distance from the 52-week high — the header count updates live. <b>Ignition</b> (0–100) hunts <i>upcoming</i> momentum: volatility squeeze near highs + rising RS + volume dry-up — sort by it to get the coil-watch list before the breakout; <b>⚡</b> marks fully coiled names. The chart icon opens the symbol in TradingView.`;
 const FOOT_PAT = `<b>Watch</b> = pattern formed, entry not yet triggered (buy-stop pending above the level). <b>Buy</b> = entry just fired. <b>★ Super</b> = RSI&gt;70 on the breakout. Daily &amp; Weekly track the indicator closely; <b>4-Hour</b> is rebuilt from hourly bars — confirm on your chart.`;
 
 function setActive(sel,attr,val){ document.querySelectorAll(sel).forEach(b=>b.classList.toggle('on',b.dataset[attr]===val)); }
@@ -1078,10 +1083,12 @@ document.addEventListener("click",e=>{ const rg=e.target.closest("#rotgran butto
   const rm=e.target.closest("#rotmode button"); if(rm){ S.rotMode=rm.dataset.rm; localStorage.setItem("mcRot",S.rotMode); render(); return; }
   const rc=e.target.closest("#rotcolor button"); if(rc){ S.rotColor=rc.dataset.rc; localStorage.setItem("mcRotC",S.rotColor); render(); return; }
   const it=e.target.closest(".rotitem[data-rot]"); if(!it)return;
-  S.view="sectors"; S.secGran="group"; localStorage.setItem("mcGran","group");
+  S.view="sectors";                                   // keep the rotation Level (sector/industry) so the clicked row exists & expands
+  localStorage.setItem("mcGran",S.secGran);
   S.open.clear(); S.open.add(it.dataset.rot);
   const rw=document.getElementById("rotwrap"); if(rw)rw.style.display="none"; $("body").parentElement.style.display="";
-  setActive('#view button','v','sectors'); render(); });
+  setActive('#view button','v','sectors'); render();
+  setTimeout(()=>{const el=document.querySelector('tr.sect.open');if(el)el.scrollIntoView({block:'center',behavior:'smooth'});},60); });
 $("sgr").onclick=e=>{ const b=e.target.closest("button"); if(!b)return; S.secGran=b.dataset.g; localStorage.setItem("mcGran",S.secGran); S.open.clear(); render(); };
 $("frv").onclick=e=>{ const b=e.target.closest('button'); if(!b)return; S.f.rvMin=+b.dataset.r; setActive('#frv button','r',b.dataset.r); fRender(); };
 $("f52").onclick=e=>{ const b=e.target.closest('button'); if(!b)return; S.f.d52=b.dataset.d===""?null:+b.dataset.d; setActive('#f52 button','d',b.dataset.d); fRender(); };
