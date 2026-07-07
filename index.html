@@ -186,6 +186,16 @@ tr.subwrap>td{box-shadow:inset 3px 0 0 var(--accent)}
 .subtbl tr:last-child td{border-bottom:none}
 .subtbl tr:hover{background:var(--rowhov)}
 .subhd{font-size:11px;color:var(--muted);padding:8px 16px 8px 46px;background:var(--sub);font-weight:600}
+.indmap{padding:12px 16px 4px 46px;background:var(--sub);border-top:1px solid var(--border)}
+.indmap-lbl{font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:8px}
+.indmap-row{display:flex;flex-wrap:wrap;gap:7px}
+.indchip{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11.5px;color:var(--text);transition:border-color .12s,background .12s}
+.indchip:hover{border-color:var(--accent);background:var(--rowhov)}
+.indchip .ic-dot{width:7px;height:7px;border-radius:50%;flex:none}
+.indchip .ic-nm{font-weight:500}
+.indchip .ic-rs{font-weight:700;font-family:'IBM Plex Mono',ui-monospace,monospace}
+.indchip .ic-n{color:var(--muted);font-size:10px;background:var(--sub);border-radius:5px;padding:1px 5px}
 
 .empty{padding:50px 20px;text-align:center;color:var(--muted)}
 .empty .big{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
@@ -337,7 +347,7 @@ input[type=range]{accent-color:var(--accent)}
     <span class="ttl" id="cbarttl"></span>
     <span class="desc" id="cbardesc"></span>
     <span class="lb" id="cbarlb"></span>
-    <span class="xall hide" id="xall"><span class="seg" id="sgr" style="margin-right:8px"><button data-g="industry">Industry</button><button data-g="group">Sector</button></span><button data-x="expand">Expand all</button><button data-x="collapse">Collapse all</button></span>
+    <span class="xall hide" id="xall"><span class="seg" id="sgr" style="margin-right:8px"><button data-g="group">Sector</button><button data-g="industry">Industry</button></span><button data-x="expand">Expand all</button><button data-x="collapse">Collapse all</button></span>
     <span class="seg hide" id="pview" style="margin-right:8px"><button data-pv="list">List</button><button data-pv="charts">Charts</button></span><span class="count" id="age" title="Age of the scan these results come from — patterns can expire or fire on the chart after the scan" style="margin-right:8px"></span>
     <span class="count" id="count"></span>
     <button class="csv" id="csv" title="Export the current table as CSV">⬇ CSV</button>
@@ -595,6 +605,18 @@ function renderSectors(){
       <td class="num" style="color:var(--muted)">${s.n}</td></tr>`;
     if(!open) return head;
     const top = subSort(s.stocks);
+    // Sector-level expansion: a clickable map of the industries inside it (RS-ranked, quadrant-colored)
+    let indChips="";
+    if(S.secGran==="group" && s.inds && s.inds.length){
+      const byName={}; mk[S.market].sectors.forEach(x=>byName[x.name]=x);
+      const kids=s.inds.map(n=>byName[n]).filter(Boolean)
+        .sort((a,b)=>(b.rs??-1)-(a.rs??-1));
+      const qcol=x=>x.rs==null?'var(--muted)':(x.rs>=50?(x.drs>=0?'var(--green)':'var(--yellow)'):(x.drs>=0?'var(--accent)':'var(--red)'));
+      indChips=`<div class="indmap"><span class="indmap-lbl">${kids.length} ${kids.length===1?'industry':'industries'} in ${s.name} — click to open:</span>
+        <div class="indmap-row">${kids.map(k=>`<button class="indchip" data-ind="${k.name}" title="RS ${k.rs??'—'} · ${k.n} stocks · ${k.ret>0?'+':''}${k.ret??''}%">
+          <span class="ic-dot" style="background:${qcol(k)}"></span><span class="ic-nm">${k.name}</span>
+          <span class="ic-rs" style="color:${qcol(k)}">${k.rs??'—'}</span><span class="ic-n">${k.n}</span></button>`).join("")}</div></div>`;
+    }
     const rows = top.map((x,i)=>`<tr>
       <td class="l">${wlStar(x.sym)}</td>
       <td class="l"><span class="sym">${x.sym}${edTag(x)}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>
@@ -607,7 +629,7 @@ function renderSectors(){
       <td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${rvx(x.relvol)}</td>
       <td class="num ${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</td>
       ${emaCell(x)}</tr>`).join("");
-    const sub = `<tr class="subwrap"><td colspan="${SECT_COLS.length}"><div class="subhd">All ${top.length} stocks — ${s.name} · click a column header to sort</div>
+    const sub = `<tr class="subwrap"><td colspan="${SECT_COLS.length}">${indChips}<div class="subhd">All ${top.length} stocks — ${s.name} · click a column header to sort</div>
       <div class="subscroll"><table class="subtbl"><thead><tr>
         <th class="l">★</th><th class="l" data-sk="sym">Symbol${subArrow("sym")}</th><th class="l">Trend</th><th class="l" data-sk="rs">RS${subArrow("rs")}<span class="hi" data-tip="${INFO.rs}">i</span></th><th data-sk="coil">Ignition${subArrow("coil")}<span class="hi" data-tip="${INFO.coil}">i</span></th><th data-sk="ret">Lookback Return${subArrow("ret")}</th><th data-sk="price">Price${subArrow("price")}</th><th data-sk="mc">Market Cap${subArrow("mc")}</th><th data-sk="relvol">Rel Vol${subArrow("relvol")}</th><th data-sk="today">Today %${subArrow("today")}</th><th data-sk="ema">EMA Trend${subArrow("ema")}</th>
       </tr></thead><tbody>${rows}</tbody></table></div></td></tr>`;
@@ -751,8 +773,11 @@ function lwcChart(el,x){
   if(x.sig==="RUNNING"&&x.run&&x.run.entry!=null){
     cs.createPriceLine({ price:x.run.entry, color:th.up, lineWidth:1, lineStyle:0, axisLabelVisible:true, title:"entry" });
     if(x.run.sl!=null) cs.createPriceLine({ price:x.run.sl, color:th.down, lineWidth:1, lineStyle:2, axisLabelVisible:true, title:"SL" });
-  } else if(x.level!=null) cs.createPriceLine({ price:x.level, color:th.yellow, lineWidth:1, lineStyle:2,
-    axisLabelVisible:true, title:x.sig==="BUY"?"entry":"buy-stop" });
+  } else if(x.level!=null){
+    cs.createPriceLine({ price:x.level, color:th.yellow, lineWidth:1, lineStyle:2,
+      axisLabelVisible:true, title:x.sig==="BUY"?"entry":"buy-stop" });
+    if(x.sl!=null) cs.createPriceLine({ price:x.sl, color:th.down, lineWidth:1, lineStyle:2, axisLabelVisible:true, title:"SL" });
+  }
   if(x.bx&&x.bx.length===4){ const [top,bot,agoS,agoE]=x.bx, n=b.length;
     const i0=Math.max(0,n-1-agoS), i1=Math.max(i0,Math.min(n-1,n-1-agoE));
     if(i1>i0){ const seg=p=>b.slice(i0,i1+1).map(r=>({time:r[0],value:p}));
@@ -774,7 +799,7 @@ function patChartSvg(x,uid){
   if(c.length<10) return `<div class="pchart" style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">no history</div>`;
   const e20=_emaSeries(raw,20).slice(-c.length);
   let lo=Math.min(...c), hi=Math.max(...c);
-  if(x.level!=null){ lo=Math.min(lo,x.level); hi=Math.max(hi,x.level); }
+  [x.level,x.sl].forEach(p=>{ if(p!=null){ lo=Math.min(lo,p); hi=Math.max(hi,p); } });
   const pad=(hi-lo)*0.07||1; lo-=pad; hi+=pad;
   const W=460,H=172,X=i=>(i/(c.length-1)*W),Y=v=>(H-(v-lo)/(hi-lo)*H);
   const pts=c.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
@@ -845,13 +870,15 @@ function aggSec(sec){
       const p=sec.stocks.filter(x=>x.ap!=null); sec.apiv=p.length?Math.round(p.filter(x=>x.ap===1).length/p.length*100):null; }
     sec.drs=avg("drs")!=null?Math.round(avg("drs")):null;
 }
-const GRP={"Advertising/Marketing Services":"Commercial Services","Aerospace & Defence":"Electronic Technology","Agricultural Commodities/Milling":"Process Industries","Air Freight/Couriers":"Transportation","Airlines":"Transportation","Alternative Power Generation":"Utilities","Aluminum":"Non-Energy Minerals","Apparel/Footwear":"Consumer Non-Durables","Apparel/Footwear Retail":"Retail Trade","Auto Parts: OEM":"Producer Manufacturing","Automotive Aftermarket":"Consumer Durables","Beverages: Alcoholic":"Consumer Non-Durables","Beverages: Non-Alcoholic":"Consumer Non-Durables","Biotechnology":"Health Technology","Broadcasting":"Consumer Services","Building Products":"Producer Manufacturing","Cable/Satellite TV":"Consumer Services","Cables & Wires":"Producer Manufacturing","Carbon & Graphite Electrodes":"Process Industries","Chemicals: Agricultural":"Process Industries","Chemicals: Major Diversified":"Process Industries","Chemicals: Specialty":"Process Industries","Coal":"Energy Minerals","Commercial Printing/Forms":"Commercial Services","Computer Communications":"Electronic Technology","Computer Peripherals":"Electronic Technology","Construction Materials":"Non-Energy Minerals","Consumer Sundries":"Consumer Non-Durables","Containers/Packaging":"Process Industries","Contract Drilling":"Industrial Services","Data Processing Services":"Technology Services","Department Stores":"Retail Trade","Drugstore Chains":"Retail Trade","Electric Utilities":"Utilities","Electrical Products":"Producer Manufacturing","Electronic Components":"Electronic Technology","Electronic Equipment/Instruments":"Electronic Technology","Electronic production equipment":"Electronic Technology","Electronics Distributors":"Distribution Services","Electronics/Appliance Stores":"Retail Trade","Electronics/Appliances":"Consumer Durables","Engineering & Construction":"Industrial Services","Environmental Services":"Industrial Services","Finance/Rental/Leasing":"Finance","Financial Conglomerates":"Finance","Financial Publishing/Services":"Commercial Services","Food Distributors":"Distribution Services","Food Retail":"Retail Trade","Food: Major Diversified":"Consumer Non-Durables","Food: Meat/Fish/Dairy":"Consumer Non-Durables","Food: Specialty/Candy":"Consumer Non-Durables","Forest Products":"Non-Energy Minerals","Gas Distributors":"Utilities","Home Furnishings":"Consumer Durables","Home Improvement Chains":"Retail Trade","Homebuilding":"Consumer Durables","Hospital/Nursing Management":"Health Services","Hotels/Resorts/Cruise lines":"Consumer Services","Household/Personal Care":"Consumer Non-Durables","Industrial Conglomerates":"Producer Manufacturing","Industrial Machinery":"Producer Manufacturing","Industrial Specialties":"Process Industries","Information Technology Services":"Technology Services","Integrated Oil":"Energy Minerals","Internet Retail":"Retail Trade","Internet Software/Services":"Technology Services","Investment Banks/Brokers":"Finance","Investment Managers":"Finance","Investment Trusts/Mutual Funds":"Finance","Life/Health Insurance":"Finance","Major Banks":"Finance","Major Telecommunications":"Communications","Marine Shipping":"Transportation","Medical Distributors":"Distribution Services","Medical Specialties":"Health Technology","Medical/Nursing Services":"Health Services","Metal Fabrication":"Producer Manufacturing","Miscellaneous":"Miscellaneous","Miscellaneous Commercial Services":"Commercial Services","Miscellaneous Manufacturing":"Producer Manufacturing","Motor Vehicles":"Consumer Durables","Movies/Entertainment":"Consumer Services","Multi-Line Insurance":"Finance","Office Equipment/Supplies":"Producer Manufacturing","Oil & Gas Pipelines":"Industrial Services","Oil & Gas Production":"Energy Minerals","Oil Refining/Marketing":"Energy Minerals","Oilfield Services/Equipment":"Industrial Services","Other Consumer Services":"Consumer Services","Other Consumer Specialties":"Consumer Durables","Other Metals/Minerals":"Non-Energy Minerals","Other Transportation":"Transportation","Packaged Software":"Technology Services","Paints & Coatings":"Process Industries","Personnel Services":"Commercial Services","Pharmaceuticals: Generic":"Health Technology","Pharmaceuticals: Major":"Health Technology","Pharmaceuticals: Other":"Health Technology","Public Sector Banks":"Finance","Publishing: Newspapers":"Consumer Services","Pulp & Paper":"Process Industries","Railroads":"Transportation","Railways":"Transportation","Real Estate Development":"Finance","Real Estate Investment Trusts":"Finance","Recreational Products":"Consumer Durables","Regional Banks":"Finance","Restaurants":"Consumer Services","Semiconductors":"Electronic Technology","Solar Energy":"Utilities","Specialty Insurance":"Finance","Specialty Stores":"Retail Trade","Specialty Telecommunications":"Communications","Steel":"Non-Energy Minerals","Sugar":"Process Industries","Telecommunications Equipment":"Electronic Technology","Textiles":"Process Industries","Tobacco":"Consumer Non-Durables","Trucking":"Transportation","Trucks/Construction/Farm Machinery":"Producer Manufacturing","Water Supply & Management":"Utilities","Wholesale Distributors":"Distribution Services","Wireless Telecommunications":"Communications"};
+const GRP={"Advertising/Marketing Services":"Commercial Services","Aerospace & Defence":"Electronic Technology","Agricultural Commodities/Milling":"Process Industries","Air Freight/Couriers":"Transportation","Airlines":"Transportation","Alternative Power Generation":"Utilities","Aluminum":"Non-Energy Minerals","Apparel/Footwear":"Consumer Non-Durables","Apparel/Footwear Retail":"Retail Trade","Auto Parts: OEM":"Producer Manufacturing","Automotive Aftermarket":"Consumer Durables","Beverages: Alcoholic":"Consumer Non-Durables","Beverages: Non-Alcoholic":"Consumer Non-Durables","Biotechnology":"Health Technology","Broadcasting":"Consumer Services","Building Products":"Producer Manufacturing","Cable/Satellite TV":"Consumer Services","Cables & Wires":"Producer Manufacturing","Carbon & Graphite Electrodes":"Process Industries","Chemicals: Agricultural":"Process Industries","Chemicals: Major Diversified":"Process Industries","Chemicals: Specialty":"Process Industries","Coal":"Energy Minerals","Commercial Printing/Forms":"Commercial Services","Computer Communications":"Electronic Technology","Computer Peripherals":"Electronic Technology","Construction Materials":"Non-Energy Minerals","Consumer Sundries":"Consumer Non-Durables","Containers/Packaging":"Process Industries","Contract Drilling":"Industrial Services","Data Processing Services":"Technology Services","Department Stores":"Retail Trade","Drugstore Chains":"Retail Trade","Electric Utilities":"Utilities","Electrical Products":"Producer Manufacturing","Electronic Components":"Electronic Technology","Electronic Equipment/Instruments":"Electronic Technology","Electronic production equipment":"Electronic Technology","Electronics Distributors":"Distribution Services","Electronics/Appliance Stores":"Retail Trade","Electronics/Appliances":"Consumer Durables","Engineering & Construction":"Industrial Services","Environmental Services":"Industrial Services","Finance/Rental/Leasing":"Finance","Financial Conglomerates":"Finance","Financial Publishing/Services":"Commercial Services","Food Distributors":"Distribution Services","Food Retail":"Retail Trade","Food: Major Diversified":"Consumer Non-Durables","Food: Meat/Fish/Dairy":"Consumer Non-Durables","Food: Specialty/Candy":"Consumer Non-Durables","Forest Products":"Non-Energy Minerals","Gas Distributors":"Utilities","Home Furnishings":"Consumer Durables","Home Improvement Chains":"Retail Trade","Homebuilding":"Consumer Durables","Hospital/Nursing Management":"Health Services","Hotels/Resorts/Cruise lines":"Consumer Services","Household/Personal Care":"Consumer Non-Durables","Industrial Conglomerates":"Producer Manufacturing","Industrial Machinery":"Producer Manufacturing","Industrial Specialties":"Process Industries","Information Technology Services":"Technology Services","Integrated Oil":"Energy Minerals","Internet Retail":"Retail Trade","Internet Software/Services":"Technology Services","Investment Banks/Brokers":"Finance","Investment Managers":"Finance","Investment Trusts/Mutual Funds":"Finance","Life/Health Insurance":"Finance","Major Banks":"Finance","Major Telecommunications":"Communications","Marine Shipping":"Transportation","Medical Distributors":"Distribution Services","Medical Specialties":"Health Technology","Medical/Nursing Services":"Health Services","Metal Fabrication":"Producer Manufacturing","Miscellaneous":"Miscellaneous","Miscellaneous Commercial Services":"Commercial Services","Miscellaneous Manufacturing":"Producer Manufacturing","Motor Vehicles":"Consumer Durables","Movies/Entertainment":"Consumer Services","Multi-Line Insurance":"Finance","Office Equipment/Supplies":"Producer Manufacturing","Oil & Gas Pipelines":"Industrial Services","Oil & Gas Production":"Energy Minerals","Oil Refining/Marketing":"Energy Minerals","Oilfield Services/Equipment":"Industrial Services","Other Consumer Services":"Consumer Services","Other Consumer Specialties":"Consumer Durables","Other Metals/Minerals":"Non-Energy Minerals","Other Transportation":"Transportation","Packaged Software":"Technology Services","Paints & Coatings":"Process Industries","Personnel Services":"Commercial Services","Pharmaceuticals: Generic":"Health Technology","Pharmaceuticals: Major":"Health Technology","Pharmaceuticals: Other":"Health Technology","Public Sector Banks":"Finance","Publishing: Newspapers":"Consumer Services","Pulp & Paper":"Process Industries","Railroads":"Transportation","Railways":"Transportation","Real Estate Development":"Finance","Real Estate Investment Trusts":"Finance","Recent Listings":"Miscellaneous","Recreational Products":"Consumer Durables","Regional Banks":"Finance","Restaurants":"Consumer Services","Semiconductors":"Electronic Technology","Solar Energy":"Utilities","Specialty Insurance":"Finance","Specialty Stores":"Retail Trade","Specialty Telecommunications":"Communications","Steel":"Non-Energy Minerals","Sugar":"Process Industries","Telecommunications Equipment":"Electronic Technology","Textiles":"Process Industries","Tobacco":"Consumer Non-Durables","Trucking":"Transportation","Trucks/Construction/Farm Machinery":"Producer Manufacturing","Water Supply & Management":"Utilities","Wholesale Distributors":"Distribution Services","Wireless Telecommunications":"Communications"};
 function buildGroups(m){
   const map={};
   if(!GRP._ci){ GRP._ci={}; for(const k in GRP) if(k!=="_ci") GRP._ci[k.toLowerCase()]=GRP[k]; }
   const grpOf=name=>GRP[name]||GRP._ci[(name||"").toLowerCase()]||"Miscellaneous";
   m.sectors.forEach(sec=>{ const g=grpOf(sec.name);
-    (map[g]=map[g]||{name:g,stocks:[]}).stocks.push(...sec.stocks.map(x=>({...x}))); });
+    const grp=(map[g]=map[g]||{name:g,stocks:[],inds:[]});
+    grp.stocks.push(...sec.stocks.map(x=>({...x})));
+    grp.inds.push(sec.name); });
   const out=Object.values(map); out.forEach(aggSec); return out;
 }
 function emaConfig(x){
@@ -1245,6 +1272,11 @@ $("body").onclick=e=>{
   if(mb){ S.limit+=500; renderStocks(); return; }
   const jump=e.target.closest('.secjump');
   if(jump){const sec=jump.dataset.sec; if(sec){S.patterns.clear();S.view="sectors";setActive('#view button','v','sectors');S.secGran="industry";localStorage.setItem("mcGran","industry");S.open=new Set([sec]);render();setTimeout(()=>{const el=document.querySelector('tr.sect.open');if(el)el.scrollIntoView({block:'center',behavior:'smooth'});},60);} return;}
+  const ich=e.target.closest('.indchip');
+  if(ich){ const ind=ich.dataset.ind; if(ind){ S.secGran="industry"; localStorage.setItem("mcGran","industry");
+    S.open=new Set([ind]); renderSectors();
+    setTimeout(()=>{const el=document.querySelector('tr.sect.open');if(el)el.scrollIntoView({block:'center',behavior:'smooth'});},60); }
+    return; }
   const tr=e.target.closest('tr.sect');if(!tr)return;const s=tr.dataset.s;S.open.has(s)?S.open.delete(s):S.open.add(s);renderSectors();
 };
 $("theme").onclick=()=>{S.theme=S.theme==="dark"?"light":"dark";document.documentElement.setAttribute('data-theme',S.theme);$("theme").textContent=S.theme==="dark"?"☾":"☀";if(S.patterns.size&&S.patView==="charts")render();};
