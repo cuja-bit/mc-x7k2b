@@ -285,6 +285,23 @@ input[type=range]{accent-color:var(--accent)}
 .ppill:hover{border-color:var(--accent)}
 .ppill .dot{width:10px;height:10px;border-radius:50%}
 .ppill b{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px}
+
+/* ---- collapsible sections + seasonality heatmap ---- */
+.section{margin-bottom:16px;border:1px solid var(--border);border-radius:14px;background:var(--panel2);overflow:hidden}
+.sechead{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;user-select:none}
+.sechead:hover{background:var(--panel)}
+.sectitle{font-weight:600;font-size:14px} .secsub{color:var(--muted);font-size:11.5px}
+.chev{margin-left:auto;color:var(--muted);transition:transform .2s}
+.section.closed .chev{transform:rotate(-90deg)} .section.closed .secbody{display:none}
+.secbody{padding:4px 16px 16px}
+.heat{width:100%;border-collapse:separate;border-spacing:3px}
+.heat th{font-size:10px;color:var(--dim);font-weight:600;text-align:center;padding:3px 0}
+.heat th:first-child{text-align:left}
+.heat .sname{font-size:11.5px;color:var(--text);white-space:nowrap;padding-right:10px;text-align:left}
+.heat .hc{text-align:center;font-size:11px;font-weight:600;border-radius:5px;padding:6px 4px;min-width:44px;font-family:'IBM Plex Mono',ui-monospace,monospace}
+.heat .stag{font-size:9.5px;font-weight:600;border-radius:5px;padding:6px 6px;white-space:nowrap;font-family:'IBM Plex Mono',ui-monospace,monospace}
+.heat .stag.best{background:rgba(34,197,94,.12);color:var(--green)}
+.heat .stag.worst{background:rgba(239,68,68,.12);color:var(--red)}
 </style>
 </head>
 <body>
@@ -475,17 +492,28 @@ function tmSquarify(items,x,y,w,h,out){
 }
 const tmColMom=m=>m>=25?["#97C459","#173404"]:m>=10?["#C0DD97","#173404"]:m>=0?["#EAF3DE","#27500A"]:m>=-10?["#FCEBEB","#791F1F"]:m>=-25?["#F7C1C1","#501313"]:["#F09595","#501313"];
 const tmColToday=v=>v>=3?["#30cc5a","#fff"]:v>=1.5?["#2f9e4f","#fff"]:v>=0.5?["#35764e","#fff"]:v>-0.5?["#414554","#fff"]:v>-1.5?["#8b444e","#fff"]:v>-3?["#bf4045","#fff"]:["#f63538","#fff"];
+// Quadrants: RS level x breadth sets strong/weak; RS momentum sets rising/falling.
+// The label is self-explanatory — no per-card flags needed.
+//   LEADING   = strong & broad & momentum not falling  (ride)
+//   WEAKENING = strong but momentum rolling over OR narrow breadth  (fading)
+//   IMPROVING = weak RS but momentum rising  (turning up)
+//   LAGGING   = weak RS & momentum flat/falling  (avoid)
 const ROTQ=[
- {q:"lead",t:"LEADING",s:"Strong & broad \u2014 the real leaders",c:"var(--green)",f:g=>g.rs>=50&&(g.rsPart==null||g.rsPart>=55)},
- {q:"weak",t:"WEAKENING",s:"Strong RS but narrow \u2014 few names carrying it",c:"var(--yellow)",f:g=>g.rs>=50&&g.rsPart!=null&&g.rsPart<55},
- {q:"impr",t:"IMPROVING",s:"Weak RS, turning up \u2014 watch for follow-through",c:"var(--accent)",f:g=>g.rs<50&&g.drs>0},
+ {q:"lead",t:"LEADING",s:"Strong, broad & still rising \u2014 ride these",c:"var(--green)",f:g=>g.rs>=50&&(g.rsPart==null||g.rsPart>=55)&&g.drs>=0},
+ {q:"weak",t:"WEAKENING",s:"Was strong, momentum fading \u2014 tighten or exit",c:"var(--yellow)",f:g=>g.rs>=50&&(g.drs<0||(g.rsPart!=null&&g.rsPart<55))},
+ {q:"impr",t:"IMPROVING",s:"Turning up from below \u2014 watch to enter",c:"var(--accent)",f:g=>g.rs<50&&g.drs>0},
  {q:"lagg",t:"LAGGING",s:"Weak and flat/slipping \u2014 avoid fresh longs",c:"var(--red)",f:g=>g.rs<50&&g.drs<=0}];
 function renderRotation(){
   const m=mk[S.market];
-  const src=S.secGran==="industry"?(m.sectors||[]):(m._groups||[]);
+  const MIN_MEMBERS=3;   // industries with <3 stocks fold into their sector — kills single-stock noise
+  const src=S.secGran==="industry"?(m.sectors||[]).filter(g=>(g.stocks?g.stocks.length:0)>=MIN_MEMBERS):(m._groups||[]);
   const groups=src.filter(g=>g.rs!=null&&g.drs!=null);
-  $("cbarttl").textContent="Rotation"; $("cbardesc").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"sectors"} · quadrants by RS level × breadth · ${TFLBL[S.tf]}`;
-  $("cbarlb").textContent=lbLabel(); $("count").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"groups"}`; renderAge();
+  $("cbarttl").textContent="Rotation"; $("cbardesc").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"sectors"} · quadrants by RS × breadth × momentum · ${TFLBL[S.tf]}`;
+  $("cbarlb").textContent=lbLabel();
+  const foldedNote = S.secGran==="industry" ? ` · ${(m.sectors||[]).filter(g=>(g.stocks?g.stocks.length:0)<3).length} micro-industries folded` : "";
+  $("count").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"groups"}`;
+  $("cbardesc").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"sectors"} · quadrants by RS × breadth × momentum · ${TFLBL[S.tf]}${foldedNote}`;
+  renderAge();
   $("xall").classList.add("hide");
   const ctlbar=`<div style="grid-column:1/-1;display:flex;gap:0;align-items:center;flex-wrap:wrap">
     <span class="ctl"><span class="lbl">View as</span><span class="seg" id="rotmode"><button data-rm="cards" class="${S.rotMode==="cards"?"on":""}">Cards</button><button data-rm="heat" class="${S.rotMode==="heat"?"on":""}">Heatmap</button></span></span>
@@ -535,12 +563,39 @@ function renderRotation(){
   $("body").parentElement.style.display="none";
   let rw=document.getElementById("rotwrap");
   if(!rw){ rw=document.createElement("div"); rw.id="rotwrap"; rw.className="rotwrap"; document.querySelector(".scroll").appendChild(rw); }
-  rw.style.display="grid"; rw.innerHTML=cols;
-  $("foot").innerHTML=`Rotation map of the <b>34 sectors</b> — the four quadrants are median RS level (strong/weak vs ${mk[S.market].benchmarks[S.bench]}) crossed with RS momentum (rising/fading). Rotation usually runs Improving → Leading → Weakening → Lagging — catch sectors as they cross into Leading, tighten up as they slip into Weakening. Click any sector or industry to open it in the Sectors view.`;
+  const seasHTML = (S.rotMode!=="heat") ? renderSeasonality(m) : "";
+  if(S.rotMode==="heat"){ rw.style.display="grid"; rw.innerHTML=cols; }
+  else { rw.style.display="block"; rw.innerHTML=`<div class="rotwrap" style="display:grid">${cols}</div>`+seasHTML; }
+  rw.querySelectorAll(".secfold").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("closed"));
+  $("foot").innerHTML=`Rotation of the <b>${groups.length} ${S.secGran==="industry"?"industries":"sectors"}</b> — quadrants set by RS level, breadth, and RS momentum. <b>Leading</b>=strong, broad, rising · <b>Weakening</b>=strong but fading · <b>Improving</b>=weak but turning up · <b>Lagging</b>=weak and flat. Micro-industries (&lt;3 stocks) fold into their sector.`;
+}
+
+function renderSeasonality(m){
+  const seas = m.seasonality || {};
+  const names = (S.secGran==="industry"?(m.sectors||[]):(m._groups||m.sectors||[])).map(s=>s.name).filter(n=>seas[n]);
+  if(!names.length) return "";
+  const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const hcol=v=>{ if(v==null) return ["var(--sub)","var(--dim)"];
+    if(v>=10)return["#1a7a44","#eafff2"]; if(v>=5)return["#22683f","#dfffef"]; if(v>=2)return["#24503a","#cfe8d6"];
+    if(v>=0)return["#22303a","#9fb8c8"]; if(v>=-3)return["#3a2530","#ffcdd5"]; if(v>=-6)return["#5a1f2a","#ffd6dc"]; return["#7a1f2a","#ffe0e4"]; };
+  const head=`<th>Sector</th>`+MONTHS.map(mo=>`<th>${mo}</th>`).join("")+`<th>Best</th><th>Worst</th>`;
+  const rows=names.map(nm=>{
+    const d=seas[nm], row=d.m||[];
+    const cells=row.map(v=>{const a=hcol(v);return `<td class="hc" style="background:${a[0]};color:${a[1]}">${v==null?"·":(v>0?"+":"")+v.toFixed(1)}</td>`;}).join("");
+    const bm=d.best?`▲ ${MONTHS[d.best[0]]} ${d.best[1]>0?"+":""}${d.best[1]}`:"—";
+    const wm=d.worst?`▼ ${MONTHS[d.worst[0]]} ${d.worst[1]>0?"+":""}${d.worst[1]}`:"—";
+    return `<tr><td class="sname">${nm}</td>${cells}<td class="stag best">${bm}</td><td class="stag worst">${wm}</td></tr>`;
+  }).join("");
+  return `<div class="section closed" style="margin-top:16px">
+    <div class="sechead secfold"><div><span class="sectitle">Seasonality</span> <span class="secsub">· average monthly return · 3-year history</span></div><span class="chev">▾</span></div>
+    <div class="secbody">
+      <div style="color:var(--muted);font-size:11px;margin:2px 0 12px">Each cell = the sector's average return in that calendar month over the last 3 years. A historical tendency, <b style="color:var(--text)">not a forecast</b>. Strongest/weakest month tagged per sector.</div>
+      <div style="overflow-x:auto"><table class="heat"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+    </div></div>`;
 }
 const quadBadge = x=>{ if(x.rs==null||x.drs==null) return '';
   const broad = x.rsPart==null||x.rsPart>=55;
-  const [t,c] = x.rs>=50 ? (broad?["Leading","var(--green)"]:["Weakening","var(--yellow)"])
+  const [t,c] = x.rs>=50 ? ((broad&&x.drs>=0)?["Leading","var(--green)"]:["Weakening","var(--yellow)"])
                          : (x.drs>0?["Improving","var(--accent)"]:["Lagging","var(--red)"]);
   return `<span class="quad" style="color:${c};border-color:${c}" title="RS ${x.rs} · Δ${x.drs>0?'+':''}${x.drs} — RRG-style rotation tag">${t}</span>`; };
 function rsi14(c,step){
@@ -621,7 +676,7 @@ function renderSectors(){
       const byName={}; mk[S.market].sectors.forEach(x=>byName[x.name]=x);
       const kids=s.inds.map(n=>byName[n]).filter(Boolean)
         .sort((a,b)=>(b.rs??-1)-(a.rs??-1));
-      const qcol=x=>x.rs==null?'var(--muted)':(x.rs>=50?((x.rsPart==null||x.rsPart>=55)?'var(--green)':'var(--yellow)'):(x.drs>0?'var(--accent)':'var(--red)'));
+      const qcol=x=>x.rs==null?'var(--muted)':(x.rs>=50?(((x.rsPart==null||x.rsPart>=55)&&x.drs>=0)?'var(--green)':'var(--yellow)'):(x.drs>0?'var(--accent)':'var(--red)'));
       indChips=`<div class="indmap"><span class="indmap-lbl">${kids.length} ${kids.length===1?'industry':'industries'} in ${s.name} — click to open:</span>
         <div class="indmap-row">${kids.map(k=>`<button class="indchip" data-ind="${k.name}" title="RS ${k.rs??'—'} · ${k.n} stocks · ${k.ret>0?'+':''}${k.ret??''}%">
           <span class="ic-dot" style="background:${qcol(k)}"></span><span class="ic-nm">${k.name}</span>
