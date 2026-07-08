@@ -239,6 +239,7 @@ tr.subwrap>td{box-shadow:inset 3px 0 0 var(--accent)}
 .pcfoot{display:flex;gap:8px 15px;margin-top:9px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',ui-monospace,monospace;align-items:center;flex-wrap:wrap}
 .pcfoot b{color:var(--text);font-weight:600}
 .pcsec{margin-left:auto;color:var(--dim);font-family:Inter,system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38%}
+.pcsec .pip{display:inline-block;margin-right:5px;vertical-align:middle}
 .bch b{color:var(--text);font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600}
 .morebtn{width:100%;background:var(--chip);border:none;color:var(--accent);font:inherit;font-weight:700;font-size:12.5px;padding:12px;cursor:pointer;border-radius:8px}
 .morebtn:hover{filter:brightness(1.2)}
@@ -516,7 +517,7 @@ function renderRotation(){
   renderAge();
   $("xall").classList.add("hide");
   const ctlbar=`<div style="grid-column:1/-1;display:flex;gap:0;align-items:center;flex-wrap:wrap">
-    <span class="ctl"><span class="lbl">View as</span><span class="seg" id="rotmode"><button data-rm="cards" class="${S.rotMode==="cards"?"on":""}">Cards</button><button data-rm="heat" class="${S.rotMode==="heat"?"on":""}">Heatmap</button></span></span>
+    <span class="ctl"><span class="lbl">View as</span><span class="seg" id="rotmode"><button data-rm="cards" class="${S.rotMode==="cards"?"on":""}">Cards</button><button data-rm="heat" class="${S.rotMode==="heat"?"on":""}">Heatmap</button><button data-rm="seas" class="${S.rotMode==="seas"?"on":""}">Seasonality</button></span></span>
     <span class="ctl"><span class="lbl">Level</span><span class="seg" id="rotgran"><button data-rg="group" class="${S.secGran==="group"?"on":""}">Sectors</button><button data-rg="industry" class="${S.secGran==="industry"?"on":""}">Industries</button></span></span>
     ${S.rotMode==="heat"?`<span class="ctl"><span class="lbl">Color by</span><span class="seg" id="rotcolor"><button data-rc="mom" class="${S.rotColor==="mom"?"on":""}">RS Momentum</button><button data-rc="today" class="${S.rotColor==="today"?"on":""}">Today %</button></span></span>
     <span class="ctl"><span style="font-size:11px;color:var(--muted)">tile size = stocks · click a tile to open it</span></span>`:""}
@@ -540,9 +541,11 @@ function renderRotation(){
       ?`<span style="font-size:11px;color:var(--muted)">RS momentum:</span>${[["#F09595","\u2264 -25"],["#F7C1C1","-25\u2026-10"],["#FCEBEB","-10\u20260"],["#EAF3DE","0\u2026+10"],["#C0DD97","+10\u2026+25"],["#97C459","\u2265 +25"]].map(([c,l])=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:2px;background:${c}"></span>${l}</span>`).join("")}`
       :`<span style="font-size:11px;color:var(--muted)">Today %:</span>${[["#f63538","\u2264 -3"],["#bf4045","-2"],["#8b444e","-1"],["#414554","0"],["#35764e","+1"],["#2f9e4f","+2"],["#30cc5a","\u2265 +3"]].map(([c,l])=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:2px;background:${c}"></span>${l}</span>`).join("")}`;
     var cols=ctlbar+`<div style="grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;align-items:center">${legend}</div><div style="grid-column:1/-1;position:relative;height:${H}px;overflow:hidden">${tiles}</div>`;
+  } else if(S.rotMode==="seas"){
+  var cols=ctlbar+renderSeasonality(m,true);
   } else {
   var cols=ctlbar+ROTQ.map(Q=>{
-    const gs=groups.filter(Q.f).sort((a,b)=>(b.rs-a.rs)||((b.rsPart||0)-(a.rsPart||0))||((b.relvol||0)-(a.relvol||0)));   // conviction: RS -> breadth -> volume (the signals with forward edge)
+    const gs=groups.filter(Q.f).sort((a,b)=>(b.drs-a.drs)||(b.rs-a.rs)||((b.rsPart||0)-(a.rsPart||0))||((b.relvol||0)-(a.relvol||0)));   // momentum-first across all four quadrants -> RS -> breadth -> volume
     const items=gs.map(g=>{
       const top=g.stocks[0]||{};
       return `<div class="rotitem" data-rot="${g.name}">
@@ -563,22 +566,24 @@ function renderRotation(){
   $("body").parentElement.style.display="none";
   let rw=document.getElementById("rotwrap");
   if(!rw){ rw=document.createElement("div"); rw.id="rotwrap"; rw.className="rotwrap"; document.querySelector(".scroll").appendChild(rw); }
-  const seasHTML = (S.rotMode!=="heat") ? renderSeasonality(m) : "";
   if(S.rotMode==="heat"){ rw.style.display="grid"; rw.innerHTML=cols; }
-  else { rw.style.display="block"; rw.innerHTML=`<div class="rotwrap" style="display:grid">${cols}</div>`+seasHTML; }
+  else if(S.rotMode==="seas"){ rw.style.display="block"; rw.innerHTML=cols; }
+  else { rw.style.display="block"; rw.innerHTML=`<div class="rotwrap" style="display:grid">${cols}</div>`; }
   rw.querySelectorAll(".secfold").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("closed"));
   $("foot").innerHTML=`Rotation of the <b>${groups.length} ${S.secGran==="industry"?"industries":"sectors"}</b> — quadrants set by RS level, breadth, and RS momentum. <b>Leading</b>=strong, broad, rising · <b>Weakening</b>=strong but fading · <b>Improving</b>=weak but turning up · <b>Lagging</b>=weak and flat. Micro-industries (&lt;3 stocks) fold into their sector.`;
 }
 
-function renderSeasonality(m){
-  const seas = m.seasonality || {};
-  const names = (S.secGran==="industry"?(m.sectors||[]):(m._groups||m.sectors||[])).map(s=>s.name).filter(n=>seas[n]);
+function renderSeasonality(m, expanded){
+  const raw = m.seasonality || {};
+  const grp = S.secGran==="group";
+  const seas = grp ? _groupSeasonality(m, raw) : raw;
+  const names = (grp ? (m._groups||buildGroups(m)) : (m.sectors||[])).map(s=>s.name).filter(n=>seas[n]);
   if(!names.length) return "";
   const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const hcol=v=>{ if(v==null) return ["var(--sub)","var(--dim)"];
     if(v>=10)return["#1a7a44","#eafff2"]; if(v>=5)return["#22683f","#dfffef"]; if(v>=2)return["#24503a","#cfe8d6"];
     if(v>=0)return["#22303a","#9fb8c8"]; if(v>=-3)return["#3a2530","#ffcdd5"]; if(v>=-6)return["#5a1f2a","#ffd6dc"]; return["#7a1f2a","#ffe0e4"]; };
-  const head=`<th>Sector</th>`+MONTHS.map(mo=>`<th>${mo}</th>`).join("")+`<th>Best</th><th>Worst</th>`;
+  const head=`<th>${grp?"Sector":"Industry"}</th>`+MONTHS.map(mo=>`<th>${mo}</th>`).join("")+`<th>Best</th><th>Worst</th>`;
   const rows=names.map(nm=>{
     const d=seas[nm], row=d.m||[];
     const cells=row.map(v=>{const a=hcol(v);return `<td class="hc" style="background:${a[0]};color:${a[1]}">${v==null?"·":(v>0?"+":"")+v.toFixed(1)}</td>`;}).join("");
@@ -586,10 +591,10 @@ function renderSeasonality(m){
     const wm=d.worst?`▼ ${MONTHS[d.worst[0]]} ${d.worst[1]>0?"+":""}${d.worst[1]}`:"—";
     return `<tr><td class="sname">${nm}</td>${cells}<td class="stag best">${bm}</td><td class="stag worst">${wm}</td></tr>`;
   }).join("");
-  return `<div class="section closed" style="margin-top:16px">
-    <div class="sechead secfold"><div><span class="sectitle">Seasonality</span> <span class="secsub">· average monthly return · 3-year history</span></div><span class="chev">▾</span></div>
+  return `<div class="section${expanded?"":" closed"}"${expanded?"":' style="margin-top:16px"'}>
+    <div class="sechead${expanded?"":" secfold"}"><div><span class="sectitle">Seasonality</span> <span class="secsub">· ${grp?"sector":"industry"} · average monthly return · 3-year history</span></div>${expanded?"":'<span class="chev">▾</span>'}</div>
     <div class="secbody">
-      <div style="color:var(--muted);font-size:11px;margin:2px 0 12px">Each cell = the sector's average return in that calendar month over the last 3 years. A historical tendency, <b style="color:var(--text)">not a forecast</b>. Strongest/weakest month tagged per sector.</div>
+      <div style="color:var(--muted);font-size:11px;margin:2px 0 12px">Each cell = the ${grp?"sector":"industry"}'s average return in that calendar month over the last 3 years. A historical tendency, <b style="color:var(--text)">not a forecast</b>. Strongest/weakest month tagged per sector.</div>
       <div style="overflow-x:auto"><table class="heat"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>
     </div></div>`;
 }
@@ -598,6 +603,33 @@ const quadBadge = x=>{ if(x.rs==null||x.drs==null) return '';
   const [t,c] = x.rs>=50 ? ((broad&&x.drs>=0)?["Leading","var(--green)"]:["Weakening","var(--yellow)"])
                          : (x.drs>0?["Improving","var(--accent)"]:["Lagging","var(--red)"]);
   return `<span class="quad" style="color:${c};border-color:${c}" title="RS ${x.rs} · Δ${x.drs>0?'+':''}${x.drs} — RRG-style rotation tag">${t}</span>`; };
+// --- industry -> rotation-quadrant colour (same rule as quadBadge/ROTQ) for the pip beside a stock's industry ---
+function _secIndex(m){ if(!m._secIdx){ const ix={}; (m.sectors||[]).forEach(s=>{ ix[s.name]=s; ix[(s.name||"").toLowerCase()]=s; }); m._secIdx=ix; } return m._secIdx; }
+function _secObj(name){ if(!name) return null; const ix=_secIndex(mk[S.market]); return ix[name]||ix[(name||"").toLowerCase()]||null; }
+function secQuadColor(name){ const s=_secObj(name); if(!s||s.rs==null||s.drs==null) return "var(--muted)";
+  const broad=s.rsPart==null||s.rsPart>=55;
+  return s.rs>=50 ? ((broad&&s.drs>=0)?"var(--green)":"var(--yellow)") : (s.drs>0?"var(--accent)":"var(--red)"); }
+function secQuadName(name){ const s=_secObj(name); if(!s||s.rs==null||s.drs==null) return "";
+  const broad=s.rsPart==null||s.rsPart>=55;
+  return s.rs>=50 ? ((broad&&s.drs>=0)?"Leading":"Weakening") : (s.drs>0?"Improving":"Lagging"); }
+// --- group-level seasonality: aggregate member industries (member-count weighted) so the Sectors level isn't blank ---
+function _groupSeasonality(m, raw){ if(m._grpSeas) return m._grpSeas;
+  if(!GRP._ci){ GRP._ci={}; for(const k in GRP) if(k!=="_ci") GRP._ci[k.toLowerCase()]=GRP[k]; }
+  const grpOf=name=>GRP[name]||GRP._ci[(name||"").toLowerCase()]||"Miscellaneous";
+  const mc={}; (m.sectors||[]).forEach(s=>mc[s.name]=(s.stocks?s.stocks.length:0));
+  const acc={};
+  (m.sectors||[]).forEach(s=>{ const d=raw[s.name]; if(!d||!d.m) return;
+    const g=grpOf(s.name), w=Math.max(1,mc[s.name]||1);
+    const a=(acc[g]=acc[g]||{sum:new Array(12).fill(0),wt:new Array(12).fill(0)});
+    d.m.forEach((v,i)=>{ if(v!=null){ a.sum[i]+=v*w; a.wt[i]+=w; } }); });
+  const out={};
+  for(const g in acc){ const a=acc[g];
+    const avg=a.sum.map((sm,i)=>a.wt[i]?Math.round((sm/a.wt[i])*10)/10:null);
+    const present=avg.map((v,i)=>[i,v]).filter(x=>x[1]!=null);
+    if(!present.length) continue;
+    const best=present.reduce((p,c)=>c[1]>p[1]?c:p), worst=present.reduce((p,c)=>c[1]<p[1]?c:p);
+    out[g]={m:avg,best:[best[0],best[1]],worst:[worst[0],worst[1]]}; }
+  m._grpSeas=out; return out; }
 function rsi14(c,step){
   const a=stepSample(c,step||1); if(a.length<16) return null;
   let g=0,l=0; for(let i=a.length-14;i<a.length;i++){ const d=a[i]-a[i-1]; if(d>=0) g+=d; else l-=d; }
@@ -742,7 +774,7 @@ function renderStocks(){
     ${xageCell(x)}
     ${dist52Cell(x)}
     ${coilCell(x)}
-    <td class="l"><span class="sector secjump" data-sec="${x.sector}" title="Open ${x.sector} in Sectors view"><span class="pip" style="background:${pipColor(x.srs)}"></span><span class="nm">${x.sector}</span></span></td>
+    <td class="l"><span class="sector secjump" data-sec="${x.sector}" title="Open ${x.sector} in Sectors view · ${secQuadName(x.sector)}"><span class="pip" style="background:${secQuadColor(x.sector)}"></span><span class="nm">${x.sector}</span></span></td>
     <td class="num ${x.ret>0?'pos':x.ret<0?'neg':''}">${pct(x.ret)}</td>
     <td class="num">${fmt(x.price)}</td>
     <td class="num">${mcFmt(x.mc)}</td>
@@ -805,7 +837,7 @@ function patCell(c,x,i){
     case "today":return `<td class="num ${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</td>`;
     case "rsi":  return `<td><span class="rs" style="color:${rsColor(x.rsi)};min-width:auto">${x.rsi??"—"}</span></td>`;
     case "rs":   return `<td class="l">${rsCell(x.rs)}</td>`;
-    case "sector":return `<td class="l"><span class="sector${x.sector?' secjump':''}" data-sec="${x.sector||''}" title="${x.sector?'Open '+x.sector+' in Sectors view':''}"><span class="pip" style="background:${pipColor(x.srs)}"></span><span class="nm">${x.sector||"—"}</span></span></td>`;
+    case "sector":return `<td class="l"><span class="sector${x.sector?' secjump':''}" data-sec="${x.sector||''}" title="${x.sector?'Open '+x.sector+' in Sectors view · '+secQuadName(x.sector):''}"><span class="pip" style="background:${secQuadColor(x.sector)}"></span><span class="nm">${x.sector||"—"}</span></span></td>`;
     case "relvol":return `<td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${rvx(x.relvol)}</td>`;
     case "dist52":return `<td class="num" style="color:${x.dist52==null?'var(--muted)':x.dist52>=-2?'var(--yellow)':x.dist52>=-10?'var(--green)':x.dist52>=-25?'var(--muted)':'var(--red)'}" title="${x.dist52==null?'':x.dist52>=-2?'At/near the 52w high — chase zone (worst bucket in backtest: 58% fail)':x.dist52>=-10?'2-10% below the high — the sweet spot (best bucket: 36% fail / 44% win)':x.dist52>=-25?'Well off the high':'Deep below the 52w high'}">${x.dist52!=null?x.dist52.toFixed(1)+"%":"—"}</td>`;
     case "coil": return x.coil!=null?coilCell(x):`<td class="num" style="color:var(--muted)">—</td>`;
@@ -902,7 +934,7 @@ function patCard(x,i){
     <div class="pcfoot">${x.sig==="RUNNING"&&x.run?`<span title="When this trade entered · stage of the trail ladder (1R->pause low, 2R->cost, then EMA-room trail / profit lock)">Entered <b>${entryDate(x)??"—"}</b> (${x.run.ago??"?"}b) @ <b>${x.run.entry??"—"}</b>${x.run.st?` · <b style="color:var(--accent)">${x.run.st}</b>`:""}</span>`:""}<span>RS <b>${x.rs??"—"}</b></span><span>RSI <b style="color:${rsColor(x.rsi)}">${x.rsi??"—"}</b></span>
       <span title="Distance from last close to the buy trigger">Trigger <b style="color:${x.totrig==null?'var(--muted)':x.totrig<=0?'var(--yellow)':x.totrig<=1.5?'var(--accent)':'var(--text)'}">${x.totrig!=null?(x.totrig>0?"+":"")+x.totrig.toFixed(2)+"%":"—"}</b></span>
       <span>Vol <b style="color:${x.relvol>=150?'var(--accent)':'var(--text)'}">${rvx(x.relvol)}</b></span>
-      <span class="pcsec">${x.sector||""}</span></div></div>`;
+      <span class="pcsec" title="${x.sector?x.sector+' · '+secQuadName(x.sector):''}">${x.sector?`<span class="pip" style="background:${secQuadColor(x.sector)}"></span>`:""}${x.sector||""}</span></div></div>`;
 }
 function renderPatterns(){
   setHead(PAT_COLS); arrows();
