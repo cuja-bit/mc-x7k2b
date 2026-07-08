@@ -476,15 +476,15 @@ function tmSquarify(items,x,y,w,h,out){
 const tmColMom=m=>m>=25?["#97C459","#173404"]:m>=10?["#C0DD97","#173404"]:m>=0?["#EAF3DE","#27500A"]:m>=-10?["#FCEBEB","#791F1F"]:m>=-25?["#F7C1C1","#501313"]:["#F09595","#501313"];
 const tmColToday=v=>v>=3?["#30cc5a","#fff"]:v>=1.5?["#2f9e4f","#fff"]:v>=0.5?["#35764e","#fff"]:v>-0.5?["#414554","#fff"]:v>-1.5?["#8b444e","#fff"]:v>-3?["#bf4045","#fff"]:["#f63538","#fff"];
 const ROTQ=[
- {q:"lead",t:"LEADING",s:"Strong RS, momentum rising \u2014 ride these",c:"var(--green)",f:g=>g.rs>=50&&g.drs>=0&&(g.rsPart==null||g.rsPart>50)},
- {q:"impr",t:"IMPROVING",s:"RS building from below \u2014 tomorrow's leaders",c:"var(--accent)",f:g=>g.rs<50&&g.drs>=0},
- {q:"weak",t:"WEAKENING",s:"Still strong, momentum fading \u2014 tighten stops",c:"var(--yellow)",f:g=>g.rs>=50&&(g.drs<0||(g.drs>=0&&g.rsPart!=null&&g.rsPart<=50))},
- {q:"lagg",t:"LAGGING",s:"Weak and slipping \u2014 avoid fresh longs",c:"var(--red)",f:g=>g.rs<50&&g.drs<0}];
+ {q:"lead",t:"LEADING",s:"Strong & broad \u2014 the real leaders",c:"var(--green)",f:g=>g.rs>=50&&(g.rsPart==null||g.rsPart>=55)},
+ {q:"weak",t:"WEAKENING",s:"Strong RS but narrow \u2014 few names carrying it",c:"var(--yellow)",f:g=>g.rs>=50&&g.rsPart!=null&&g.rsPart<55},
+ {q:"impr",t:"IMPROVING",s:"Weak RS, turning up \u2014 watch for follow-through",c:"var(--accent)",f:g=>g.rs<50&&g.drs>0},
+ {q:"lagg",t:"LAGGING",s:"Weak and flat/slipping \u2014 avoid fresh longs",c:"var(--red)",f:g=>g.rs<50&&g.drs<=0}];
 function renderRotation(){
   const m=mk[S.market];
   const src=S.secGran==="industry"?(m.sectors||[]):(m._groups||[]);
   const groups=src.filter(g=>g.rs!=null&&g.drs!=null);
-  $("cbarttl").textContent="Rotation"; $("cbardesc").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"sectors"} · quadrants by RS level × RS momentum · ${TFLBL[S.tf]}`;
+  $("cbarttl").textContent="Rotation"; $("cbardesc").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"sectors"} · quadrants by RS level × breadth · ${TFLBL[S.tf]}`;
   $("cbarlb").textContent=lbLabel(); $("count").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"groups"}`; renderAge();
   $("xall").classList.add("hide");
   const ctlbar=`<div style="grid-column:1/-1;display:flex;gap:0;align-items:center;flex-wrap:wrap">
@@ -514,7 +514,7 @@ function renderRotation(){
     var cols=ctlbar+`<div style="grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;align-items:center">${legend}</div><div style="grid-column:1/-1;position:relative;height:${H}px;overflow:hidden">${tiles}</div>`;
   } else {
   var cols=ctlbar+ROTQ.map(Q=>{
-    const gs=groups.filter(Q.f).sort((a,b)=>(b.rs-a.rs)||(b.drs-a.drs));   // strongest RS first in every quadrant
+    const gs=groups.filter(Q.f).sort((a,b)=>(b.rs-a.rs)||((b.rsPart||0)-(a.rsPart||0))||((b.relvol||0)-(a.relvol||0)));   // conviction: RS -> breadth -> volume (the signals with forward edge)
     const items=gs.map(g=>{
       const top=g.stocks[0]||{};
       return `<div class="rotitem" data-rot="${g.name}">
@@ -539,9 +539,9 @@ function renderRotation(){
   $("foot").innerHTML=`Rotation map of the <b>34 sectors</b> — the four quadrants are median RS level (strong/weak vs ${mk[S.market].benchmarks[S.bench]}) crossed with RS momentum (rising/fading). Rotation usually runs Improving → Leading → Weakening → Lagging — catch sectors as they cross into Leading, tighten up as they slip into Weakening. Click any sector or industry to open it in the Sectors view.`;
 }
 const quadBadge = x=>{ if(x.rs==null||x.drs==null) return '';
-  const strongPart = x.rsPart==null||x.rsPart>50;
-  const [t,c] = x.rs>=50 ? ((x.drs>=0&&strongPart)?["Leading","var(--green)"]:["Weakening","var(--yellow)"])
-                         : (x.drs>=0?["Improving","var(--accent)"]:["Lagging","var(--red)"]);
+  const broad = x.rsPart==null||x.rsPart>=55;
+  const [t,c] = x.rs>=50 ? (broad?["Leading","var(--green)"]:["Weakening","var(--yellow)"])
+                         : (x.drs>0?["Improving","var(--accent)"]:["Lagging","var(--red)"]);
   return `<span class="quad" style="color:${c};border-color:${c}" title="RS ${x.rs} · Δ${x.drs>0?'+':''}${x.drs} — RRG-style rotation tag">${t}</span>`; };
 function rsi14(c,step){
   const a=stepSample(c,step||1); if(a.length<16) return null;
@@ -621,7 +621,7 @@ function renderSectors(){
       const byName={}; mk[S.market].sectors.forEach(x=>byName[x.name]=x);
       const kids=s.inds.map(n=>byName[n]).filter(Boolean)
         .sort((a,b)=>(b.rs??-1)-(a.rs??-1));
-      const qcol=x=>x.rs==null?'var(--muted)':(x.rs>=50?((x.drs>=0&&(x.rsPart==null||x.rsPart>50))?'var(--green)':'var(--yellow)'):(x.drs>=0?'var(--accent)':'var(--red)'));
+      const qcol=x=>x.rs==null?'var(--muted)':(x.rs>=50?((x.rsPart==null||x.rsPart>=55)?'var(--green)':'var(--yellow)'):(x.drs>0?'var(--accent)':'var(--red)'));
       indChips=`<div class="indmap"><span class="indmap-lbl">${kids.length} ${kids.length===1?'industry':'industries'} in ${s.name} — click to open:</span>
         <div class="indmap-row">${kids.map(k=>`<button class="indchip" data-ind="${k.name}" title="RS ${k.rs??'—'} · ${k.n} stocks · ${k.ret>0?'+':''}${k.ret??''}%">
           <span class="ic-dot" style="background:${qcol(k)}"></span><span class="ic-nm">${k.name}</span>
