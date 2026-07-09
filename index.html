@@ -239,6 +239,23 @@ tr.subwrap>td{box-shadow:inset 3px 0 0 var(--accent)}
 .pchead .edtag{flex:none}
 .pchart{width:100%;height:172px;display:block;border-radius:9px;background:var(--panel2);border:1px solid var(--border)}
 .lwc{width:100%;height:210px;border-radius:9px;background:var(--panel2);border:1px solid var(--border);overflow:hidden;position:relative}
+.pcwrap{position:relative}
+.pexp{position:absolute;right:8px;bottom:8px;z-index:3;width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1px solid var(--border2);border-radius:7px;color:var(--muted);font-size:14px;line-height:1;cursor:pointer;opacity:.55;transition:opacity .12s,border-color .12s,color .12s}
+.pcwrap:hover .pexp{opacity:1}
+.pexp:hover{border-color:var(--accent);color:var(--accent)}
+#patov{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.62);backdrop-filter:blur(3px);padding:24px}
+.patovbox{background:var(--panel);border:1px solid var(--border2);border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.6);width:min(1040px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.patovhd{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:13px 16px;border-bottom:1px solid var(--border)}
+.patovhd .sym{font-weight:800;font-size:16px}
+.patovhd .pcnm{max-width:none}
+.patovtv{margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid var(--border2);border-radius:8px;padding:6px 11px;color:var(--accent);font-weight:700;font-size:12px;text-decoration:none;cursor:pointer}
+.patovtv:hover{border-color:var(--accent)}
+.patovclose{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:var(--chip);color:var(--muted);font-size:17px;line-height:1;cursor:pointer}
+.patovclose:hover{border-color:var(--accent);color:var(--text)}
+.patovchart{flex:1 1 auto;min-height:56vh;padding:14px 16px}
+.patovchart .lwc,.patovchart .pchart{height:100%;min-height:54vh}
+.patovfoot{display:flex;gap:8px 16px;padding:11px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',ui-monospace,monospace;align-items:center;flex-wrap:wrap}
+.patovfoot b{color:var(--text);font-weight:600}
 .pcfoot{display:flex;gap:8px 15px;margin-top:9px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',ui-monospace,monospace;align-items:center;flex-wrap:wrap}
 .pcfoot b{color:var(--text);font-weight:600}
 .pcsec{margin-left:auto;color:var(--dim);font-family:Inter,system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38%}
@@ -287,7 +304,10 @@ input[type=range]{accent-color:var(--accent)}
 .pc .pbar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px}
 .ppill{position:fixed;right:18px;bottom:18px;z-index:60;display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--border2);border-radius:999px;padding:9px 16px;box-shadow:0 10px 30px rgba(0,0,0,.45);cursor:pointer;font-weight:700;font-size:12.5px}
 .ppill:hover{border-color:var(--accent)}
-.ppill .dot{width:10px;height:10px;border-radius:50%}
+.ppill .dot{width:10px;height:10px;border-radius:50%;animation:pdotPulse 1.6s ease-in-out infinite}
+.ppill .dot.r{animation-duration:.85s}.ppill .dot.y{animation-duration:1.3s}.ppill .dot.g{animation-duration:2s}
+@keyframes pdotPulse{0%{box-shadow:0 0 0 0 currentColor;opacity:1}70%{box-shadow:0 0 0 6px rgba(0,0,0,0);opacity:.5}100%{box-shadow:0 0 0 0 rgba(0,0,0,0);opacity:1}}
+@media(prefers-reduced-motion:reduce){.ppill .dot{animation:none}}
 .ppill b{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px}
 
 /* ---- collapsible sections + seasonality heatmap ---- */
@@ -333,6 +353,7 @@ input[type=range]{accent-color:var(--accent)}
 <div class="bar">
   <div class="ctl"><span class="lbl">Lookback</span>
     <div class="seg" id="lbmode">
+      <button data-m="today">Today</button>
       <button data-m="days" class="on">Days</button>
       <button data-m="date">Date range</button>
     </div>
@@ -554,7 +575,7 @@ function renderRotation(){
   var cols=ctlbar+renderSeasonality(m,true);
   } else {
   var cols=ctlbar+ROTQ.map(Q=>{
-    const gs=groups.filter(Q.f).sort((a,b)=>(b.drs-a.drs)||(b.rs-a.rs)||((b.rsPart||0)-(a.rsPart||0))||((b.relvol||0)-(a.relvol||0)));   // momentum-first across all four quadrants -> RS -> breadth -> volume
+    const gs=groups.filter(Q.f).sort((a,b)=>(b.rs-a.rs)||(b.drs-a.drs)||((b.rsPart||0)-(a.rsPart||0))||((b.relvol||0)-(a.relvol||0)));   // RS-first within each quadrant -> RS momentum -> breadth -> volume
     const items=gs.map(g=>{
       const top=g.stocks[0]||{};
       return `<div class="rotitem" data-rot="${g.name}">
@@ -695,6 +716,9 @@ function buildBench(){ if(!mk[S.market].benchmarks[S.bench]) S.bench=0;
   { const m=mk[S.market]; if(!benchUsable(m,S.bench)){ const ok=m.benchmarks.findIndex((_,i)=>benchUsable(m,i)); if(ok>=0) S.bench=ok; } } $("bench").innerHTML = mk[S.market].benchmarks.map((x,i)=>`<option value="${i}" ${i===S.bench?'selected':''}>${x}</option>`).join(""); }
 
 function lbLabel(){
+  if(S.lbMode==="today"){ const m=mk[S.market], d=m&&m.dates&&m.dates.length?m.dates[m.dates.length-1]:null;
+    const f=d=>d?new Date(d).toLocaleDateString(undefined,{day:'numeric',month:'short'}):'latest bar';
+    return `Today only · ${f(d)} · 1-day move + short-term RS`; }
   if(S.lbMode==="days") return `${S.lbDays}-day lookback`;
   const m=mk[S.market], fmt=d=>d?new Date(d).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'…';
   const RR=(m&&m.bench_closes)?resolveRange(m):null;
@@ -705,10 +729,10 @@ function lbLabel(){
 
 function lbBounds(){ const m=mk[S.market]; return (m&&m.dates&&m.dates.length)?{min:m.dates[0],max:m.dates[m.dates.length-1]}:null; }
 function syncLb(){                                    // show the right inputs + fence the calendar to shipped history
-  const days=S.lbMode==="days";
+  const days=S.lbMode==="days", today=S.lbMode==="today";
   $("lbdays").classList.toggle('hide',!days);
-  ["lbfromlbl","lbdate","lbtolbl","lbto"].forEach(id=>{ const el=$(id); if(el) el.classList.toggle('hide',days); });
-  $("lbunit").textContent=days?"trading days":"";
+  ["lbfromlbl","lbdate","lbtolbl","lbto"].forEach(id=>{ const el=$(id); if(el) el.classList.toggle('hide',days||today); });
+  $("lbunit").textContent=days?"trading days":today?"latest session only":"";
   const b=lbBounds();
   if(b){ ["lbdate","lbto"].forEach(id=>{ const el=$(id); if(el){ el.min=b.min; el.max=b.max; } });   // grey out unavailable dates
          if(S.lbDate<b.min) S.lbDate=b.min;                                                            // clamp From into range
@@ -908,6 +932,33 @@ function entryDate(x){
 }
 let LWC_INST=[];
 function clearLwc(){ LWC_INST.forEach(c=>{try{c.remove()}catch(e){}}); LWC_INST=[]; }
+let PAT_ROWS=[];              // last-rendered chart-mode cards (for the ⤢ expand overlay)
+let OV_CHART=null;            // LightweightCharts instance inside the overlay
+function closePatOverlay(){ const ov=document.getElementById("patov"); if(ov) ov.style.display="none";
+  if(OV_CHART){ try{OV_CHART.remove()}catch(e){} OV_CHART=null; } }
+function openPatOverlay(x){
+  let ov=document.getElementById("patov");
+  if(!ov){ ov=document.createElement("div"); ov.id="patov"; document.body.appendChild(ov);
+    ov.addEventListener("click",e=>{ if(e.target===ov||e.target.closest(".patovclose")) closePatOverlay(); }); }
+  const gg=patGrade(x); const g=gg.g?`<span class="grade g${gg.g}" title="${gg.tip}">${gg.g}</span>`:"";
+  const cls=x.sig==="BUY"?"buy":x.sig==="RUNNING"?("run r-"+(x.run&&x.run.rnow!=null?(x.run.rnow>0?"up":x.run.rnow<0?"down":"muted"):"muted")):"watch";
+  const rr=x.sig==="RUNNING"&&x.run&&x.run.rnow!=null?` <b class="rn">${x.run.rnow>0?"+":""}${x.run.rnow}R</b>`:"";
+  ov.innerHTML=`<div class="patovbox">
+    <div class="patovhd"><span class="badge ${cls}">${x.sig}${rr}</span>${g}${x.sup?'<span class="star">★ SUPER</span>':""}
+      <span class="sym">${x.sym}${x.elite?" 🔥":""}</span><span class="pcnm">${x.nm||""}</span>
+      <span class="pcpx">${fmt(x.price)} <b class="${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</b></span>
+      <a class="patovtv" href="${tvUrl(x.sym)}" target="_blank" rel="noopener">${x.pat||"Pattern"} · open in TradingView ↗</a>
+      <button class="patovclose" title="Close (Esc)">✕</button></div>
+    <div class="patovchart"></div>
+    <div class="patovfoot">${x.sig==="RUNNING"&&x.run?`<span>Entered <b>${entryDate(x)??"—"}</b> (${x.run.ago??"?"}b) @ <b>${x.run.entry??"—"}</b>${x.run.st?` · <b style="color:var(--accent)">${x.run.st}</b>`:""}</span>`:""}<span>RS <b>${x.rs??"—"}</b></span><span>RSI <b style="color:${rsColor(x.rsi)}">${x.rsi??"—"}</b></span><span>Trigger <b style="color:${x.totrig==null?'var(--muted)':x.totrig<=0?'var(--yellow)':x.totrig<=1.5?'var(--accent)':'var(--text)'}">${x.totrig!=null?(x.totrig>0?"+":"")+x.totrig.toFixed(2)+"%":"—"}</b></span><span>Vol <b style="color:${x.relvol>=150?'var(--accent)':'var(--text)'}">${rvx(x.relvol)}</b></span><span class="pcsec">${x.sector?`<span class="pip" style="background:${secQuadColor(x.sector)}"></span>`:""}${x.sector||""}</span></div></div>`;
+  ov.style.display="flex";
+  const host=ov.querySelector(".patovchart");
+  if(x.ohlc&&x.ohlc.length>=10&&window.LightweightCharts){
+    try{ const before=LWC_INST.length; lwcChart(host,x); OV_CHART=LWC_INST.pop()||null; }   // keep overlay chart out of the grid's clearLwc list
+    catch(e){ host.innerHTML=patChartSvg(x,"ov"); }
+  } else host.innerHTML=patChartSvg(x,"ov");
+}
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closePatOverlay(); });
 function lwcTheme(){
   const cs=getComputedStyle(document.documentElement), v=n=>cs.getPropertyValue(n).trim();
   return { bg:v('--panel2')||'#0f151c', text:v('--muted')||'#8b98a5', grid:(v('--border')||'#1d2733'),
@@ -978,14 +1029,24 @@ function patChartSvg(x,uid){
     ${lvlY!=null?`<line x1="0" x2="${W}" y1="${lvlY.toFixed(1)}" y2="${lvlY.toFixed(1)}" stroke="var(--yellow)" stroke-dasharray="5 4" stroke-width="1.1"/><text x="${W-5}" y="${Math.min(H-4,Math.max(11,lvlY-5)).toFixed(1)}" text-anchor="end" font-size="10.5" fill="var(--yellow)" font-family="IBM Plex Mono">${fmt(x.level)}</text>`:""}
   </svg>`;
 }
+// Effective A/B/C grade for a card. Server grade (x.g) wins; ZIDDI RUNNING trades
+// carry none, so mirror Humble's current RS/Ignition grade client-side.
+function patGrade(x){
+  if(x.g) return {g:x.g, tip:`Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters`};
+  if(x.sig==="RUNNING" && x.rs!=null && x.coil!=null){
+    const g=(x.coil>75&&x.rs>90)?"A":(x.coil>60&&x.rs>80)?"B":"C";
+    return {g, tip:`Strength grade ${g} — current RS ${x.rs} / Ignition ${x.coil} (A: RS>90 & Ign>75 · B: RS>80 & Ign>60 · else C)`};
+  }
+  return {g:"", tip:""};
+}
 function patCard(x,i){
   const cls=x.sig==="BUY"?"buy":x.sig==="RUNNING"?("run r-"+(x.run&&x.run.rnow!=null?(x.run.rnow>0?"up":x.run.rnow<0?"down":"muted"):"muted")):"watch";
-  const g=x.g?`<span class="grade g${x.g}" data-tip="Entry quality ${x.g} — misses ${x.gm??"?"}/5 calibrated filters">${x.g}</span>`:"";
+  const gg=patGrade(x); const g=gg.g?`<span class="grade g${gg.g}" data-tip="${gg.tip}">${gg.g}</span>`:"";
   return `<div class="pcard" data-tv="${x.sym}" title="Open ${x.sym} in TradingView">
     <div class="pchead"><span class="badge ${cls}"${x.sig==="RUNNING"?` title="Open trade — entered ${(x.run&&x.run.entry)??"?"} ~${(x.run&&x.run.ago)??"?"} bars ago"`:""}>${x.sig==="RUNNING"?"":`<span class="dot"></span>`}${x.sig}${x.sig==="RUNNING"&&x.run&&x.run.rnow!=null?` <b class="rn">${x.run.rnow>0?"+":""}${x.run.rnow}R</b>`:""}</span>${(x.sig==="WATCH"&&x.totrig!=null&&x.totrig<=0)?`<span class="badge brch" title="${/hum/i.test(x.pat||"")?"Price crossed the buy-stop but the fire gate (vol ≥1× 20MA + RSI ≥50) hasn\u2019t confirmed — by design, quiet breaches are skipped":"Price crossed the level after this scan — confirm the breakout candle on the chart"}">breached</span>`:""}${g}${x.sup?'<span class="star">★ SUPER</span>':""}
       <span class="sym">${x.sym}${x.elite?" 🔥":""}</span><span class="pcnm">${x.nm||""}</span>${edTag(x)}
       <span class="pcpx">${fmt(x.price)} <b class="${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</b></span></div>
-    ${(x.ohlc&&x.ohlc.length>=10&&window.LightweightCharts)?`<div class="lwc" data-ci="${i}"></div>`:patChartSvg(x,i)}
+    <div class="pcwrap">${(x.ohlc&&x.ohlc.length>=10&&window.LightweightCharts)?`<div class="lwc" data-ci="${i}"></div>`:patChartSvg(x,i)}<button class="pexp" data-idx="${i}" title="Expand chart">⤢</button></div>
     <div class="pcfoot">${x.sig==="RUNNING"&&x.run?`<span title="When this trade entered · stage of the trail ladder (1R->pause low, 2R->cost, then EMA-room trail / profit lock)">Entered <b>${entryDate(x)??"—"}</b> (${x.run.ago??"?"}b) @ <b>${x.run.entry??"—"}</b>${x.run.st?` · <b style="color:var(--accent)">${x.run.st}</b>`:""}</span>`:""}<span>RS <b>${x.rs??"—"}</b></span><span>RSI <b style="color:${rsColor(x.rsi)}">${x.rsi??"—"}</b></span>
       <span title="Distance from last close to the buy trigger">Trigger <b style="color:${x.totrig==null?'var(--muted)':x.totrig<=0?'var(--yellow)':x.totrig<=1.5?'var(--accent)':'var(--text)'}">${x.totrig!=null?(x.totrig>0?"+":"")+x.totrig.toFixed(2)+"%":"—"}</b></span>
       <span>Vol <b style="color:${x.relvol>=150?'var(--accent)':'var(--text)'}">${rvx(x.relvol)}</b></span>
@@ -1004,12 +1065,15 @@ function renderPatterns(){
   setActive('#pview button','pv',S.patView);
   let pg=document.getElementById("patgrid");
   if(!pg){ pg=document.createElement("div"); pg.id="patgrid"; document.querySelector(".scroll").appendChild(pg);
-    pg.addEventListener("click",e=>{ const c=e.target.closest(".pcard"); if(c&&c.dataset.tv) window.open(tvUrl(c.dataset.tv),"_blank","noopener"); }); }
+    pg.addEventListener("click",e=>{
+      const exp=e.target.closest(".pexp");
+      if(exp){ e.stopPropagation(); const x=PAT_ROWS[+exp.dataset.idx]; if(x) openPatOverlay(x); return; }  // ⤢ → expand overlay
+      const c=e.target.closest(".pcard"); if(c&&c.dataset.tv) window.open(tvUrl(c.dataset.tv),"_blank","noopener"); }); }  // chart/card → TradingView
   if(S.patView==="charts"){
     clearLwc();
     $("body").parentElement.style.display="none"; pg.style.display="grid";
     if(!r.length){ pg.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="big">No ${sigL.toLowerCase()} on ${tfL}</div>Try another timeframe or “All”.</div>`; return; }
-    const cap=150, rows=r.slice(0,cap);
+    const cap=150, rows=r.slice(0,cap); PAT_ROWS=rows;   // cached for the ⤢ expand overlay
     pg.innerHTML=rows.map((x,i)=>patCard(x,i)).join("")+(r.length>cap?`<div class="empty" style="grid-column:1/-1">Showing first ${cap} of ${r.length} — refine with filters or the signal toggle.</div>`:"");
     pg.querySelectorAll(".lwc[data-ci]").forEach(el=>{ const x=rows[+el.dataset.ci];
       try{ lwcChart(el,x); }catch(e){ el.outerHTML=patChartSvg(x,+el.dataset.ci); } });
@@ -1106,15 +1170,16 @@ function resolveRange(m){
 function recompute(){
   const m=mk[S.market]; if(!m||!m.bench_closes) return;          // sample mode -> keep static values
   const range=S.lbMode==="date";
-  const step=range?1:(S.tf==="1W"?5:S.tf==="1M"?21:1);            // date-range is daily-only (a 2-day 1W window is meaningless)
+  const today=S.lbMode==="today";                                // Today = single latest session (1-day move + shortest RS)
+  const step=(range||today)?1:(S.tf==="1W"?5:S.tf==="1M"?21:1);   // date-range & Today are daily-only
   const RR=range?resolveRange(m):null;
-  let lb=range?RR.bars:S.lbDays;
+  let lb=range?RR.bars:(today?1:S.lbDays);
   // real 4H mode: use 4H closes (c4 per stock + 4H bench series) when the scan shipped them;
   // otherwise (old data.json / bench without intraday) fall back to daily silently.
-  const bc4=(!range&&S.tf==="4H"&&m.bench_closes_4h)?(m.bench_closes_4h[m.benchmarks[S.bench]]||null):null;
+  const bc4=(!range&&!today&&S.tf==="4H"&&m.bench_closes_4h)?(m.bench_closes_4h[m.benchmarks[S.bench]]||null):null;
   const use4=!!(bc4&&bc4.length>=30);
   const bc=use4?bc4:stepSample(m.bench_closes[m.benchmarks[S.bench]]||[],step);
-  const bars=range?RR.bars:(use4?Math.max(3,Math.round(lb*2)):Math.max(3,Math.round(lb/step)));   // ~2 4H bars/session
+  const bars=range?RR.bars:(today?1:(use4?Math.max(3,Math.round(lb*2)):Math.max(3,Math.round(lb/step))));   // Today -> ret over 1 bar; mansfield floors its window to 3 bars
   const bcW=(range&&RR.endCut>0)?bc.slice(0,bc.length-RR.endCut):bc;                // bench windowed to the To-date
   SPARK_BARS=Math.max(8,(use4?Math.max(3,lb):bars)+1);                            // sparklines stay daily
   m.sectors.forEach(sec=>{
@@ -1321,7 +1386,7 @@ function renderPulse(){
     ${Wshow.length?`<div class="pwarn">⚠ <b>EARLY WARNING</b> — ${Wshow.join(" · ")}${P.cls!=="r"?" · skip fresh entries until this clears":""}</div>`:""}`;
   const pcol=P.cls==="g"?"var(--green)":P.cls==="y"?"var(--yellow)":"var(--red)";
   pill.classList.remove('hide');
-  pill.innerHTML=`<span class="dot" style="background:${pcol}"></span><b style="color:${pcol}">${P.score}</b>${dP!=null&&dP!==0?`<span style="color:${dP>0?'var(--green)':'var(--red)'};font-size:11px;font-weight:700">${dP>0?"▲":"▼"}</span>`:""} <span style="color:var(--muted)">${P.state}</span>${Wshow.length?'<span style="color:var(--yellow)">⚠</span>':""}`;
+  pill.innerHTML=`<span class="dot ${P.cls}" style="background:${pcol};color:${pcol}"></span><b style="color:${pcol}">${P.score}</b>${dP!=null&&dP!==0?`<span style="color:${dP>0?'var(--green)':'var(--red)'};font-size:11px;font-weight:700">${dP>0?"▲":"▼"}</span>`:""} <span style="color:var(--muted)">${P.state}</span>${Wshow.length?'<span style="color:var(--yellow)">⚠</span>':""}`;
 }
 function breadthLine(){
   const m=mk[S.market], el=$("breadth");
@@ -1348,7 +1413,7 @@ function loadHash(){ try{
   if(q.get('v')==="stocks"||q.get('v')==="sectors"||q.get('v')==="rotation") S.view=q.get('v');
   if(q.get('tf')) S.tf=q.get('tf');
   if(q.get('b')&&mk[S.market].benchmarks[+q.get('b')]) S.bench=+q.get('b');
-  if(q.get('lm')==="days"||q.get('lm')==="date") S.lbMode=q.get('lm');
+  if(q.get('lm')==="days"||q.get('lm')==="date"||q.get('lm')==="today") S.lbMode=q.get('lm');
   if(q.get('ld')&&+q.get('ld')>0) S.lbDays=+q.get('ld');
   if(q.get('dt')) S.lbDate=q.get('dt');
   if(q.get('dt2')) S.lbTo=q.get('dt2');
