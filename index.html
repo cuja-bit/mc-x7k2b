@@ -371,6 +371,7 @@ input[type=range]{accent-color:var(--accent)}
   <div class="fgrp"><span class="flbl">EMA cross</span><select id="xfSel" class="txt" style="width:auto;padding:5px 8px"><option>5</option><option>9</option><option selected>10</option><option>13</option><option>20</option></select><span class="flbl">×</span><select id="xsSel" class="txt" style="width:auto;padding:5px 8px"><option selected>20</option><option>21</option><option>50</option><option>100</option><option>200</option></select></div>
   <div class="fgrp"><span class="flbl">Rel vol ≥</span><div class="seg" id="frv"><button data-r="0" class="on">Any</button><button data-r="150">1.5x</button><button data-r="200">2x</button></div></div>
   <div class="fgrp"><span class="flbl">Near 52W hi</span><div class="seg" id="f52"><button data-d="" class="on">Any</button><button data-d="-5">≤5%</button><button data-d="-15">≤15%</button></div></div>
+  <div class="fgrp"><span class="flbl">Pattern label</span><div class="seg" id="fpat"><button data-pl="0" class="on">Off</button><button data-pl="1">On</button></div></div>
   <button class="fclear" id="fclear">Reset all</button>
 </div>
 
@@ -419,6 +420,7 @@ const $ = id => document.getElementById(id);
 function loadWatch(){ try{ return new Set(JSON.parse(localStorage.getItem('mc_watch')||'[]')); }catch(e){ return new Set(); } }
 function saveWatch(){ try{ localStorage.setItem('mc_watch', JSON.stringify([...S.watch])); }catch(e){} }
 S.watch=loadWatch(); S.wlOnly=false; S.limit=300;
+S.patLbl=localStorage.getItem("mcPatLbl")==="1";   // pattern (ZIDDI/HUMBLE) labels next to tickers — OFF by default
 S.f={mcLo:0,mcHi:100,prLo:null,prHi:null,rsMin:0,igMin:0,emaMin:0,rvMin:0,d52:null};
 S.xf=+(localStorage.getItem("mcXf")||10); S.xs=+(localStorage.getItem("mcXs")||20);
 S.secGran=localStorage.getItem("mcGran")||"industry";
@@ -443,6 +445,7 @@ function syncFilterUI(){ try{ const f=S.f;
   $("mcfill").style.left=f.mcLo+"%"; $("mcfill").style.right=(100-f.mcHi)+"%";
   $("frsv").textContent=f.rsMin>0?"≥ "+f.rsMin:"Any";
   $("figv").textContent=f.igMin>0?"≥ "+f.igMin:"Any";
+  setActive('#fpat button','pl',S.patLbl?"1":"0");
   const n=fCount(); $("fbtn").textContent=n?`Filters · ${n}`:"Filters"; $("fbtn").classList.toggle('on',n>0);
 }catch(e){} }
 const mk = DATA.markets;
@@ -665,6 +668,28 @@ function buildPatterns(){
     x.active ? `<div class="pat ${S.patterns.has(k)?'on':''}" data-p="${k}"><span class="box"></span>${x.label}</div>`
              : `<div class="pat soon" data-p="${k}"><span class="box"></span>${x.label}<span class="sb">soon</span></div>`).join("");
 }
+// ---- pattern (ZIDDI/HUMBLE) label lookup: sym -> [{t:"ZIDDI·RUN",sig}], cached per market+tf ----
+let _plCache={key:null,map:null};
+function patLabelMap(){
+  const key=S.market+"|"+S.tf;
+  if(_plCache.key===key) return _plCache.map;
+  const map={}, pats=(mk[S.market]&&mk[S.market].patterns)||{};
+  Object.entries(pats).forEach(([k,p])=>{
+    if(!p||!p.active||!p.tf) return;
+    const lbl=(p.label||k).toUpperCase();
+    (p.tf[S.tf]||[]).forEach(x=>{
+      const sig=x.sig==="RUNNING"?"RUN":x.sig;              // BUY / WATCH / RUN
+      (map[x.sym]=map[x.sym]||[]).push({t:lbl+"·"+sig, sig:x.sig});
+    });
+  });
+  _plCache={key,map}; return map;
+}
+function patTags(sym){
+  if(!S.patLbl) return "";
+  const arr=patLabelMap()[sym]; if(!arr||!arr.length) return "";
+  const col=s=>s==="BUY"?"var(--green)":s==="RUNNING"?"var(--accent)":"var(--yellow)";
+  return arr.map(a=>{const c=col(a.sig);return `<span class="ptag" style="display:inline-block;margin-left:5px;padding:0 5px;border:1px solid ${c}66;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.3px;color:${c};vertical-align:middle" title="${a.t.replace('·',' ')} setup on ${TFLBL[S.tf]}">${a.t}</span>`;}).join("");
+}
 function benchUsable(m,i){ const n=(m.bench_closes&&m.bench_closes[m.benchmarks[i]]||[]).length; return n>=70; }
 function buildBench(){ if(!mk[S.market].benchmarks[S.bench]) S.bench=0;
   { const m=mk[S.market]; if(!benchUsable(m,S.bench)){ const ok=m.benchmarks.findIndex((_,i)=>benchUsable(m,i)); if(ok>=0) S.bench=ok; } } $("bench").innerHTML = mk[S.market].benchmarks.map((x,i)=>`<option value="${i}" ${i===S.bench?'selected':''}>${x}</option>`).join(""); }
@@ -746,7 +771,7 @@ function renderSectors(){
     }
     const rows = top.map((x,i)=>`<tr>
       <td class="l">${wlStar(x.sym)}</td>
-      <td class="l"><span class="sym">${x.sym}${edTag(x)}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>
+      <td class="l"><span class="sym">${x.sym}${edTag(x)}${tvIcon(x.sym)}${patTags(x.sym)}<span class="nm">${x.nm||""}</span></span></td>
       <td class="l">${spark(x.c,x.ret)}</td>
       <td class="l">${rsCell(x.rs)}</td>
       ${coilCell(x)}
@@ -796,7 +821,7 @@ function renderStocks(){
   let html=shown.map((x,i)=>`<tr class="main">
     <td class="l rank">${i+1}</td>
     <td class="l">${wlStar(x.sym)}</td>
-    <td class="l"><span class="sym">${x.sym}${edTag(x)}${tvIcon(x.sym)}<span class="nm">${x.nm||""}</span></span></td>
+    <td class="l"><span class="sym">${x.sym}${edTag(x)}${tvIcon(x.sym)}${patTags(x.sym)}<span class="nm">${x.nm||""}</span></span></td>
     <td class="l">${spark(x.c,x.ret)}</td>
     <td class="l">${rsCell(x.rs)}</td>
     ${drsCell(x.drs)}
@@ -1390,6 +1415,7 @@ document.addEventListener("click",e=>{ const rg=e.target.closest("#rotgran butto
 $("sgr").onclick=e=>{ const b=e.target.closest("button"); if(!b)return; S.secGran=b.dataset.g; localStorage.setItem("mcGran",S.secGran); S.open.clear(); render(); };
 $("frv").onclick=e=>{ const b=e.target.closest('button'); if(!b)return; S.f.rvMin=+b.dataset.r; setActive('#frv button','r',b.dataset.r); fRender(); };
 $("f52").onclick=e=>{ const b=e.target.closest('button'); if(!b)return; S.f.d52=b.dataset.d===""?null:+b.dataset.d; setActive('#f52 button','d',b.dataset.d); fRender(); };
+$("fpat").onclick=e=>{ const b=e.target.closest('button'); if(!b)return; S.patLbl=b.dataset.pl==="1"; localStorage.setItem("mcPatLbl",S.patLbl?"1":"0"); setActive('#fpat button','pl',b.dataset.pl); S.limit=300; render(); };
 $("fclear").onclick=()=>{ S.f={mcLo:0,mcHi:100,prLo:null,prHi:null,rsMin:0,igMin:0,emaMin:0,rvMin:0,d52:null};
 S.xf=+(localStorage.getItem("mcXf")||10); S.xs=+(localStorage.getItem("mcXs")||20);
 S.secGran=localStorage.getItem("mcGran")||"industry";
