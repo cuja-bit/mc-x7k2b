@@ -704,12 +704,18 @@ function renderSectors(){
   setHead(SECT_COLS); arrows();
   document.querySelectorAll("#sgr button").forEach(b=>b.classList.toggle("on",b.dataset.g===S.secGran));
   let secs = S.secGran==="group" ? (mk[S.market]._groups||mk[S.market].sectors) : mk[S.market].sectors;
+  let _microFolded = 0;
+  if(S.secGran!=="group" && !S.q){                       // industries with <3 stocks are noise in the RS ranking —
+    const _b = secs.length;                              // hide them here. Their stocks still appear in the Stocks
+    secs = secs.filter(s=>(s.stocks?s.stocks.length:0) >= 3);   // view and still count in breadth/RS — NOT dropped.
+    _microFolded = _b - secs.length;
+  }
   if(S.q) secs = secs.filter(s=>s.name.toLowerCase().includes(S.q)||s.stocks.some(x=>x.sym.toLowerCase().includes(S.q)));
   secs = sortRows(secs);
   $("cbarttl").textContent="Sectors";
   $("cbardesc").textContent=`ranked by RS vs ${mk[S.market].benchmarks[S.bench]} · ${TFLBL[S.tf]}`;
   $("cbarlb").textContent=lbLabel();
-  $("count").textContent=`${secs.length} sectors`;
+  $("count").textContent=`${secs.length} ${S.secGran==="group"?"sectors":"industries"}${_microFolded?` · ${_microFolded} micro-industries folded`:""}`;
   if(!secs.length){ $("body").innerHTML=`<tr><td colspan="${SECT_COLS.length}"><div class="empty"><div class="big">No match</div></div></td></tr>`; return; }
   $("body").innerHTML = secs.map(s=>{
     const open = S.open.has(s.name);
