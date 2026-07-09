@@ -539,6 +539,15 @@ function renderRotation(){
   const MIN_MEMBERS=3;   // industries with <3 stocks fold into their sector — kills single-stock noise
   const src=S.secGran==="industry"?(m.sectors||[]).filter(g=>(g.stocks?g.stocks.length:0)>=MIN_MEMBERS):(m._groups||[]);
   const groups=src.filter(g=>g.rs!=null&&g.drs!=null);
+  // Evidence-based rotation rank (conditional-on-setup test, Jul 2026): percentile-rank each
+  // group on RS-level, participation (% above 20EMA = a20) and rel-volume, then average. Those
+  // three tilt ZIDDI setup forward returns; RS-momentum (drs) does NOT, so it's display-only.
+  (function(){
+    const rk=key=>{ const ord=groups.map((g,i)=>({i,v:(g[key]==null||isNaN(g[key]))?-Infinity:g[key]})).sort((a,b)=>a.v-b.v);
+      const n=groups.length, out=new Array(n); ord.forEach((o,r)=>{ out[o.i]=n>1?r/(n-1):0.5; }); return out; };
+    const a=rk('rs'), b=rk('a20'), c=rk('relvol');
+    groups.forEach((g,i)=>{ g._blend=(a[i]+b[i]+c[i])/3; });
+  })();
   $("cbarttl").textContent="Rotation"; $("cbardesc").textContent=`${groups.length} ${S.secGran==="industry"?"industries":"sectors"} · quadrants by RS × breadth × momentum · ${TFLBL[S.tf]}`;
   $("cbarlb").textContent=lbLabel();
   const foldedNote = S.secGran==="industry" ? ` · ${(m.sectors||[]).filter(g=>(g.stocks?g.stocks.length:0)<3).length} micro-industries folded` : "";
@@ -575,7 +584,7 @@ function renderRotation(){
   var cols=ctlbar+renderSeasonality(m,true);
   } else {
   var cols=ctlbar+ROTQ.map(Q=>{
-    const gs=groups.filter(Q.f).sort((a,b)=>(b.rs-a.rs)||(b.drs-a.drs)||((b.rsPart||0)-(a.rsPart||0))||((b.relvol||0)-(a.relvol||0)));   // RS-first within each quadrant -> RS momentum -> breadth -> volume
+    const gs=groups.filter(Q.f).sort((a,b)=>(b._blend-a._blend)||(b.rs-a.rs));   // rank-blend {RS-level, participation %>20EMA, rel-volume} desc, RS tiebreak; momentum is display-only
     const items=gs.map(g=>{
       const top=g.stocks[0]||{};
       return `<div class="rotitem" data-rot="${g.name}">
