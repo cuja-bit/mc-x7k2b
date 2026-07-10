@@ -210,6 +210,42 @@ tr.subwrap>td{box-shadow:inset 3px 0 0 var(--accent)}
 .foot{margin-top:14px;font-size:11.5px;color:var(--dim);line-height:1.65}
 .foot b{color:var(--muted);font-weight:600}
 .hide{display:none!important}
+/* ===== motion & polish — transform/opacity only (3.4MB DOM: no layout-thrashing animations) ===== */
+@keyframes mcFadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes mcFadeDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes mcFade{from{opacity:0}to{opacity:1}}
+@keyframes mcPop{0%{opacity:0;transform:scale(.955) translateY(10px)}100%{opacity:1;transform:none}}
+@keyframes mcDraw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion: no-preference){
+  body{animation:mcFade .4s ease-out;transition:background-color .35s,color .35s}
+  /* entrances (elements are recreated on each render, so these replay on sort/filter — fast on purpose) */
+  tbody tr.main{animation:mcFadeUp .24s ease-out}
+  tr.subwrap .subscroll,tr.subwrap .indmap{animation:mcFadeUp .28s ease-out}
+  .rotcol{animation:mcFadeUp .32s ease-out both}
+  .rotcol:nth-last-child(4){animation-delay:.03s}.rotcol:nth-last-child(3){animation-delay:.09s}
+  .rotcol:nth-last-child(2){animation-delay:.15s}.rotcol:nth-last-child(1){animation-delay:.21s}
+  .rotcol .rotitem,#patgrid .pcard{animation:mcFadeUp .3s ease-out}
+  .pulse{animation:mcFadeUp .4s ease-out}
+  .breadth{animation:mcFadeUp .45s ease-out}
+  .fbar{animation:mcFadeDown .22s ease-out}
+  /* sparklines draw themselves in (pathLength=1 normalizes every line) */
+  .spk polyline{stroke-dasharray:1;stroke-dashoffset:1;animation:mcDraw .55s ease-out forwards}
+  /* hover lifts */
+  .rotcol .rotitem{transition:border-color .15s,transform .16s,box-shadow .16s,background-color .35s}
+  .rotcol .rotitem:hover{transform:translateY(-2px);box-shadow:0 7px 20px rgba(0,0,0,.28)}
+  .pcard{transition:border-color .15s,transform .18s,box-shadow .18s,background-color .35s}
+  .pcard:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,0,0,.32)}
+  .ppill{transition:border-color .15s,transform .16s}
+  .ppill:hover{transform:translateY(-2px) scale(1.03)}
+  #brand .logo svg{transition:transform .25s cubic-bezier(.2,.8,.3,1.4)}
+  #brand:hover .logo svg{transform:rotate(-8deg) scale(1.1)}
+  /* press feedback */
+  .seg button:active,.pat:active,.wlbtn:active,.csv:active,.fclear:active,.morebtn:active,.indchip:active{transform:scale(.94)}
+  .seg button,.pat,.wlbtn,.csv,.fclear,.morebtn,.indchip{transition:background-color .15s,color .15s,border-color .15s,transform .1s}
+  /* pattern-chart expand overlay */
+  #patov{animation:mcFade .18s ease-out}
+  #patov .patovbox{animation:mcPop .24s cubic-bezier(.2,.9,.25,1.12)}
+}
 @media(max-width:640px){
   body{padding:14px 12px 50px}
   .brand small{display:none}
@@ -681,7 +717,7 @@ function spark(c,ret){ if(!c||c.length<8) return '<span class="dash">—</span>'
   const pts=a.map((v,i)=>`${(i/(a.length-1)*W).toFixed(1)},${(hi===lo?H/2:H-1-(v-lo)/(hi-lo)*(H-2)).toFixed(1)}`).join(" ");
   const dir = ret!=null ? ret : (a[a.length-1]-a[0]);                    // color by the row's actual lookback return
   const col = dir>0?'var(--green)':dir<0?'var(--red)':'var(--muted)';
-  return `<svg class="spk" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.4"/></svg>`; }
+  return `<svg class="spk" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline pathLength="1" points="${pts}" fill="none" stroke="${col}" stroke-width="1.4"/></svg>`; }
 const tvUrl = s=>`https://www.tradingview.com/chart/?symbol=${encodeURIComponent((S.market==="IN"?"NSE:":"")+s)}`;
 const tvIcon = s=>`<a class="tv" href="${tvUrl(s)}" target="_blank" rel="noopener" title="Open ${s} chart in TradingView" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 7-8"/><path d="M3 21h18"/></svg></a>`;
 
