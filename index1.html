@@ -867,7 +867,7 @@ function buildScreeners(){
     return `<button data-s="${k}" class="${S.scr===k?'on':''}" title="${d.tip}">${d.label}${n?` \u00b7 ${n}`:''}</button>`;
   }).join("")+'</div>';
 }
-const SCR_COLS=[{k:"rank",t:"#",l:1},{k:"sym",t:"Stock",l:1},{k:"sector",t:"Industry",l:1},{k:"ago",t:"Signal"},{k:"entry",t:"Entry"},{k:"_since",t:"Since"},{k:"rs",t:"RS"},{k:"drs",t:"\u0394RS"},{k:"srs",t:"Sector RS"},{k:"ign",t:"Ign"}];
+const SCR_COLS=[{k:"rank",t:"#",l:1},{k:"sym",t:"Stock",l:1},{k:"sector",t:"Industry",l:1},{k:"ago",t:"Signal"},{k:"price",t:"Price"},{k:"today",t:"Today %"},{k:"relvol",t:"Rel Vol"},{k:"ema",t:"EMA Trend"},{k:"rs",t:"RS"},{k:"drs",t:"\u0394RS"},{k:"srs",t:"Sector RS"},{k:"ign",t:"Ign"}];
 function renderScreener(){
   const def=SCREENERS[S.scr]||{label:S.scr};
   const hits=(((mk[S.market]||{}).screeners||{})[S.scr])||[];
@@ -877,8 +877,8 @@ function renderScreener(){
   setActive('#pview button','pv',S.patView);
   const A={}; try{ allStocks().forEach(s=>A[s.sym]=s); }catch(e){}
   const rows=hits.map(x=>{ const s=A[x.sym]||{}; const now=s.price;
-    return Object.assign({}, x, {price:now, today:s.today, c:s.c, _since:(now&&x.entry)?((now/x.entry-1)*100):null}); });
-  const KS=["sym","ago","entry","_since","rs","drs","srs","ign"];
+    return Object.assign({}, s, x, {price:now, today:s.today, c:s.c, sig:"DOJI", pat:def.label, _since:(now&&x.entry)?((now/x.entry-1)*100):null}); });
+  const KS=["sym","ago","price","today","relvol","rs","drs","srs","ign"];
   if(!KS.includes(S.sortK)){ S.sortK="ago"; S.sortDir=1; }
   const r=sortRows(rows);
   $("count").textContent=`${r.length} ${r.length===1?"signal":"signals"}`;
@@ -896,33 +896,40 @@ function renderScreener(){
     if(!pg){ pg=document.createElement("div"); pg.id="patgrid"; document.querySelector(".scroll").appendChild(pg);
       pg.addEventListener("click",e=>{ const ex=e.target.closest(".pexp"); if(ex){ e.stopPropagation(); const x=PAT_ROWS[+ex.dataset.idx]; if(x)openPatOverlay(x); return; } const c=e.target.closest(".pcard"); if(c&&c.dataset.tv) window.open(tvUrl(c.dataset.tv),"_blank","noopener"); }); }
     pg.style.display="grid";
-    pg.innerHTML=r.map(x=>{ const sc=x._since, col=sc>0?'var(--green)':sc<0?'var(--red)':'var(--muted)';
-      const a=(x.c||[]).slice(-60); let spk;
-      if(a.length>=8){ const lo=Math.min(...a),hi=Math.max(...a),W=240,H=64;
-        const pts=a.map((v,i)=>`${(i/(a.length-1)*W).toFixed(1)},${(hi===lo?H/2:H-2-(v-lo)/(hi-lo)*(H-4)).toFixed(1)}`).join(" ");
-        spk=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:64px;display:block"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6"/></svg>`;
-      } else spk='<div style="height:64px;display:grid;place-items:center;color:var(--dim);font-size:11px">no chart data</div>';
-      return `<div class="pcard scard" data-tv="${x.sym}" title="Open ${x.sym} in TradingView">
-        <div class="schd"><span class="sym">${x.sym}</span> ${tvIcon(x.sym)}<span class="scpx" style="${mono};margin-left:auto">${x.entry??""} <b style="color:${col}">${sc!=null?(sc>0?'+':'')+sc.toFixed(1)+'%':''}</b></span></div>
-        <div class="scnm">${x.nm||""} \u00b7 ${x.sector||""}</div>
-        ${spk}
-        <div class="scstats" style="${mono}">RS ${x.rs??""} \u00b7 \u0394RS ${x.drs>0?"+":""}${x.drs??""} \u00b7 Sec ${x.srs??""} \u00b7 Ign ${x.ign??""} \u00b7 ${agoTxt(x)}</div>
-      </div>`; }).join("");
+    const cap=150, rows=r.slice(0,cap); PAT_ROWS=rows;   // cached for the \u2922 expand overlay
+    pg.innerHTML=rows.map((x,i)=>dflyCard(x,i)).join("")+(r.length>cap?`<div class="empty" style="grid-column:1/-1">Showing first ${cap} of ${r.length} \u2014 refine with the search or timeframe.</div>`:"");
+    pg.querySelectorAll(".lwc[data-ci]").forEach(el=>{ const x=rows[+el.dataset.ci];
+      try{ lwcChart(el,x); }catch(e){ el.outerHTML=patChartSvg(x,+el.dataset.ci); } });
     return;
   }
   $("body").parentElement.style.display="";
   setHead(SCR_COLS); arrows();
-  $("body").innerHTML=r.map((x,i)=>{ const sc=x._since;
+  $("body").innerHTML=r.map((x,i)=>{
     return `<tr class="main"><td class="l rank">${i+1}</td>
       <td class="l">${wlStar(x.sym)}<b>${x.sym}</b> ${tvIcon(x.sym)} <span style="color:var(--dim);font-size:11.5px">${x.nm||""}</span></td>
-      <td class="l"><span class="secjump" data-sec="${x.sector||""}" style="color:var(--muted)">${x.sector||""}</span></td>
+      <td class="l"><span class="sector${x.sector?' secjump':''}" data-sec="${x.sector||''}" title="${x.sector?'Open '+x.sector+' in Sectors view \u00b7 '+secQuadName(x.sector):''}"><span class="pip" style="background:${secQuadColor(x.sector)}"></span><span class="nm">${x.sector||"\u2014"}</span></span></td>
       <td style="color:var(--muted)">${agoTxt(x)}</td>
-      <td style="${mono}">${x.entry??""}</td>
-      <td style="${mono};color:${sc>0?'var(--green)':sc<0?'var(--red)':'var(--muted)'}">${sc!=null?(sc>0?"+":"")+sc.toFixed(1)+"%":"\u2014"}</td>
-      <td style="${mono}">${x.rs??""}</td>
-      <td style="${mono};color:${x.drs>0?'var(--green)':'var(--muted)'}">${x.drs>0?"+":""}${x.drs??""}</td>
-      <td style="${mono}">${x.srs??""}</td>
-      <td style="${mono}">${x.ign??""}</td></tr>`; }).join("");
+      <td class="num">${fmt(x.price)}</td>
+      <td class="num ${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</td>
+      <td class="num" style="color:${x.relvol>=150?'var(--accent)':'var(--muted)'}">${rvx(x.relvol)}</td>
+      ${emaCell(x)}
+      <td>${rsCell(x.rs)}</td>
+      <td class="num" style="color:${x.drs>0?'var(--green)':'var(--muted)'}">${x.drs>0?"+":""}${x.drs??"\u2014"}</td>
+      <td class="num">${x.srs??"\u2014"}</td>
+      <td class="num">${x.ign??"\u2014"}</td></tr>`; }).join("");
+}
+// Dragonfly chart-view card \u2014 same shell/chart as the pattern cards (full LWC candles)
+function dflyCard(x,i){
+  const sc=x._since, scol=sc>0?'var(--green)':sc<0?'var(--red)':'var(--muted)';
+  const agoTxt=`${x.d||""}${x.ago===0?" \u00b7 today":x.ago===1?" \u00b7 1d ago":x.ago?` \u00b7 ${x.ago}d ago`:""}`;
+  return `<div class="pcard" data-tv="${x.sym}" title="Open ${x.sym} in TradingView">
+    <div class="pchead"><span class="badge watch" title="Dragonfly doji confirmed by the next close"><span class="dot"></span>DOJI</span>
+      <span class="sym">${x.sym}</span><span class="pcnm">${x.nm||""}</span>
+      <span class="pcpx">${fmt(x.price)} <b class="${x.today>0?'pos':x.today<0?'neg':''}">${pct2(x.today)}</b></span></div>
+    <div class="pcwrap">${(x.ohlc&&x.ohlc.length>=10&&window.LightweightCharts)?`<div class="lwc" data-ci="${i}"></div>`:patChartSvg(x,i)}<button class="pexp" data-idx="${i}" title="Expand chart">\u2922</button></div>
+    <div class="pcfoot"><span>RS <b>${x.rs??"\u2014"}</b></span><span title="RS momentum vs ~5 bars ago">\u0394RS <b style="color:${x.drs>0?'var(--green)':'var(--muted)'}">${x.drs>0?"+":""}${x.drs??"\u2014"}</b></span><span title="Sector RS">Sec <b>${x.srs??"\u2014"}</b></span><span title="Ignition (compression)">Ign <b>${x.ign??"\u2014"}</b></span>
+      <span title="Move since the confirmation close">Since <b style="color:${scol}">${sc!=null?(sc>0?"+":"")+sc.toFixed(1)+"%":"\u2014"}</b></span>
+      <span class="pcsec" title="${x.sector?x.sector+' \u00b7 '+secQuadName(x.sector):''}">${x.sector?`<span class="pip" style="background:${secQuadColor(x.sector)}"></span>`:""}${x.sector||""}</span></div></div>`;
 }
 
 // ---- pattern (ZIDDI/HUMBLE) label lookup: sym -> [{t:"ZIDDI·RUN",sig}], cached per market+tf ----
@@ -1101,7 +1108,7 @@ function renderStocks(){
 }
 
 /* ---------- PATTERN MODE ---------- */
-const PAT_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symbol",l:true},{k:"spark",t:"Trend",l:true},{k:"sig",t:"Setup",l:true},{k:"pat",t:"Pattern",l:true},
+const PAT_COLS=[{k:"rank",t:"#",l:true},{k:"wl",t:"★",l:true},{k:"sym",t:"Symbol",l:true},{k:"spark",t:"Trend",l:true},{k:"sig",t:"Setup",l:true},
   {k:"price",t:"Price"},{k:"level",t:"Buy >"},{k:"totrig",t:"To Trigger"},{k:"today",t:"Today %"},{k:"rsi",t:"RSI"},{k:"rs",t:"RS"},{k:"coil",t:"Ignition"},
   {k:"sector",t:"Industry",l:true},{k:"relvol",t:"Rel Vol"},{k:"dist52",t:"vs 52W Hi"},{k:"ema",t:"EMA Trend"}];
 
@@ -1737,7 +1744,7 @@ function rxChartSVG(q){
 }
 function rxTiles(q){
   const tc=v=>v>=0?'var(--green)':'var(--red)', sg=v=>v>0?'+':'';
-  const row=(lab,v,em)=>`<div style="display:flex;justify-content:space-between;padding:2px 0${em?';border-top:1px solid var(--sub);border-bottom:1px solid var(--sub);margin:1px 0':''}"><span style="font-size:10px;color:${em?'var(--text)':'var(--muted)'}">${lab}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:${em?'12.5':'11.5'}px;font-weight:${em?700:400};color:${tc(v)}">${sg(v)}${v.toFixed(1)}</span></div>`;
+  const row=(lab,v,em)=>`<div style="display:flex;justify-content:space-between;padding:2px 0${em?';border-top:1px solid var(--sub);border-bottom:1px solid var(--sub);margin:1px 0':''}"><span style="font-size:10px;color:${em?'var(--text)':'var(--muted)'}">${lab}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:${em?'12.5':'11.5'}px;font-weight:${em?700:400};color:${tc(v)}">${sg(v)}${v.toFixed(1)}%</span></div>`;
   return `<div class="rxtiles">${q.map((x,i)=>`<div class="rxtile" style="border-top:2px solid ${RX_COLORS[i%4]}"><div class="rxtl"><span style="width:8px;height:8px;border-radius:2px;background:${RX_COLORS[i%4]}"></span>${x.label}</div>${row('\u22121 day',x.d[1],false)}${row('Result',x.d[2],true)}${row('+1 day',x.d[3],false)}</div>`).join("")}</div>`;
 }
 function openReaction(sym){
