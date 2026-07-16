@@ -32,6 +32,20 @@ h1 small{color:var(--muted);font-weight:400;font-size:12.5px;margin-left:8px}
 .seg button:not(.on):hover{color:var(--text)}
 .ibtn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--panel);color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer}
 .ibtn:hover{color:var(--text);border-color:var(--dim)}
+select#bsel{background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:5px 8px;font-size:12.5px;font-weight:600;outline:none;cursor:pointer}
+select#bsel:hover{border-color:var(--dim)}
+/* display-options popover (declutters the toolbar) */
+.dwrap{position:relative}
+.dbtn{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer;font-size:14px}
+.dbtn:hover{border-color:var(--accent);color:var(--text)}
+.dpop{position:absolute;right:0;top:38px;z-index:30;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:none;min-width:230px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.dpop.open{display:block}
+.drow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:4px 0;font-size:10.5px;letter-spacing:.06em;color:var(--dim);font-weight:700}
+.drow .seg button{padding:3.5px 9px;font-size:11.5px}
+/* drill-down breadcrumb */
+.crumb{position:absolute;top:10px;left:12px;z-index:6;background:rgba(13,16,22,.92);border:1px solid var(--accent);border-radius:9px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--text)}
+.crumb:hover{background:var(--panel2)}
+.crumb b{color:var(--accent2)}
 
 /* ============ layout ============ */
 main{flex:1;display:grid;grid-template-columns:1fr 292px;gap:12px;padding:12px 16px;min-height:0}
@@ -113,9 +127,11 @@ footer b{color:var(--muted)}
 
 <header>
   <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 L9 11 L13 14 L21 6"/><path d="M15 6 h6 v6"/></svg></div>
-  <h1>RRG Rotation Map <small>sector strength orbit · vs NIFTY 500</small></h1>
+  <h1>RRG Rotation Map <small id="sub">sector strength orbit · vs NIFTY 500</small></h1>
   <span class="badge" id="badge">MOCKUP</span>
   <div class="hspace"></div>
+  <select id="bsel" style="display:none" title="Benchmark — RS is measured against this index"></select>
+  <div class="seg" id="mseg" style="display:none" title="Axis model — JdK-style ratio/momentum, or the cockpit's own RS × ΔRS (Mansfield RS, median of members, like the Rotation view)"><button data-m="jdk" class="on">JdK</button><button data-m="ckpt">Cockpit RS</button></div>
   <div class="seg" id="gseg"><button data-g="sec" class="on">Sectors</button><button data-g="ind">Industries</button></div>
   <div class="seg" id="tfseg"><button data-tf="W" class="on">Weekly</button><button data-tf="D">Daily</button></div>
   <button class="ibtn" id="info">i</button>
@@ -126,23 +142,31 @@ footer b{color:var(--muted)}
     <div class="bar">
       <button class="playbtn" id="play" title="Play / pause (space)"><svg viewBox="0 0 12 12" fill="currentColor"><path id="picon" d="M2 1.5 L10.5 6 L2 10.5 Z"/></svg></button>
       <div class="ctl"><div class="seg" id="spd">
-        <button data-s="0.5">½×</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button>
+        <button data-s="0.25">¼×</button><button data-s="0.5">½×</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button>
       </div></div>
       <div class="scrub"><input type="range" id="tl" min="0" max="100" step="0.01" value="0"><span class="tlab" id="tlab">—</span></div>
       <div class="ctl">TAIL <input type="range" id="tail" min="3" max="30" step="1" value="10"><span class="val" id="tailv">10</span></div>
-      <div class="ctl"><div class="seg" id="zseg"><button data-z="fit" class="on">Fit</button><button data-z="fix">100±10</button></div></div>
-      <div class="ctl">LABELS <div class="seg" id="lseg"><button data-l="auto" class="on">Auto</button><button data-l="all">All</button><button data-l="off">Off</button></div></div>
+      <div class="dwrap">
+        <button class="dbtn" id="disp" title="Display options">⚙</button>
+        <div class="dpop" id="dpop">
+          <div class="drow"><span>ZOOM</span><div class="seg" id="zseg"><button data-z="fit" class="on">Fit</button><button data-z="fix">100±10</button></div></div>
+          <div class="drow"><span>LABELS</span><div class="seg" id="lseg"><button data-l="auto" class="on">Auto</button><button data-l="all">All</button><button data-l="off">Off</button></div></div>
+          <div class="drow" id="smoothrow" style="display:none"><span>ΔRS SERIES</span><div class="seg" id="sseg"><button data-sm="raw" class="on">Raw</button><button data-sm="smooth">Smooth</button></div></div>
+          <div class="drow" id="watchrow" style="display:none"><span id="watchlab">⭐ WATCHLIST</span><div class="seg" id="wseg"><button data-w="off" class="on">Hide</button><button data-w="on">Show</button></div></div>
+        </div>
+      </div>
     </div>
     <div class="wrap">
       <canvas id="cv"></canvas>
       <div class="tip" id="tip"></div>
       <div class="feed" id="feed"></div>
+      <div class="crumb" id="crumb" style="display:none" title="Back to all groups (Esc)"></div>
     </div>
   </div>
 
   <aside>
     <div class="side-h"><input id="q" placeholder="filter sectors…" autocomplete="off"></div>
-    <div class="cols"><span>SECTOR · RANKED BY RS-RATIO</span><span>RS-R</span><span>RS-M</span><span></span></div>
+    <div class="cols"><span>SECTOR · RANKED BY STRENGTH</span><span id="colA">RS-R</span><span id="colB">RS-M</span><span></span></div>
     <div class="list" id="list"></div>
     <div class="side-f"><span id="pincount">click a row to pin</span><button id="clearpin">clear</button></div>
   </aside>
@@ -161,7 +185,8 @@ footer b{color:var(--muted)}
     <div style="border-color:rgba(242,181,68,.4)"><b style="color:var(--yellow)">WEAKENING ↘</b><span>still strong, losing steam — tighten, take profits</span></div>
   </div>
   <p>Sectors orbit <b>clockwise</b>: Improving → Leading → Weakening → Lagging. The comet tail shows the path — each segment keeps the colour of the quadrant it passed through, so you can read the whole journey at a glance. Dots along the tail are one bar apart: <b>wider spacing = faster rotation</b>.</p>
-  <p><b>Hover</b> a head for details · <b>click</b> to pin (multiple allowed) · <b>wheel</b> zooms, <b>drag</b> pans · <b>space</b> plays/pauses · <b>←/→</b> step one bar · <b>F</b> re-fits the camera.</p>
+  <p><b>Hover</b> a head for details · <b>click</b> to pin (multiple allowed) · <b>double-click</b> a sector to drill into its member stocks (breadcrumb or <b>Esc</b> to come back) · <b>wheel</b> zooms, <b>drag</b> pans · <b>space</b> plays/pauses · <b>←/→</b> step one bar · <b>F</b> re-fits the camera.</p>
+  <p>The <b>⚙</b> menu holds the quieter options: zoom preset, label density, <b>ΔRS smoothing</b> (Cockpit model), and the <b>⭐ watchlist overlay</b> — your starred symbols drawn as diamonds on the same map. The benchmark selector (header) re-bases every RS calculation.</p>
 </div></div>
 
 <script>
@@ -274,48 +299,117 @@ function jdkSeries(comp,bench,step){
   return {rsr,rsm};
 }
 
-function buildLive(daily){
-  const m=LIVEDATA.markets.IN, L=280, step=daily?1:5;
-  const bench=(m.bench_closes['NIFTY 500']||Object.values(m.bench_closes)[0]).slice(-L);
-  const groups={};                               // group name -> member close arrays
-  m.sectors.forEach(sec=>{
-    const g=S.mode==='sec' ? (GRP_LIVE[sec.name]||'Miscellaneous') : indLbl(sec.name);
-    (sec.stocks||[]).forEach(st=>{ const c=st.c;
-      if(!c||c.length<L||c[c.length-L]<=0)return;
-      (groups[g]=groups[g]||[]).push(c.slice(-L)); });
-  });
-  /* pass 1 — raw JdK-style series per group */
-  let raw=[];
-  for(const g in groups){
-    const mem=groups[g]; if(mem.length<(S.mode==='sec'?3:4))continue;
-    const comp=new Array(L).fill(0);              // equal-weight composite, each member normalized to 1
-    mem.forEach(c=>{ const b=c[0]||1; for(let i=0;i<L;i++)comp[i]+=(c[i]||c[i-1]||b)/b; });
-    for(let i=0;i<L;i++)comp[i]/=mem.length;
-    const {rsr,rsm}=jdkSeries(comp,bench,step);
-    raw.push({name:g,rsr,rsm,_n:mem.length});
+/* Rolling Mansfield-style RS (1..99) — the cockpit's own RS, per bar, O(n) via
+   min/max deques. Window w = same idea as the app's lookback (63d / 13w). */
+function rollRS(s,b,w){
+  const n=Math.min(s.length,b.length), r=new Array(n), out=new Array(n).fill(null);
+  for(let i=0;i<n;i++) r[i]=b[i]?s[i]/b[i]:null;
+  const qmin=[],qmax=[];
+  for(let i=0;i<n;i++){
+    if(r[i]==null) continue;
+    while(qmin.length&&r[qmin[qmin.length-1]]>=r[i])qmin.pop(); qmin.push(i);
+    while(qmax.length&&r[qmax[qmax.length-1]]<=r[i])qmax.pop(); qmax.push(i);
+    while(qmin[0]<i-w)qmin.shift(); while(qmax[0]<i-w)qmax.shift();
+    if(i>=w){ const lo=r[qmin[0]],hi=r[qmax[0]];
+      out[i]=hi===lo?50:Math.max(1,Math.min(99,Math.round(98*(r[i]-lo)/(hi-lo)+1))); }
   }
-  raw.sort((a,b)=>b._n-a._n);
-  if(S.mode!=='sec') raw=raw.slice(0,40);          // industries: 40 largest groups
+  return out;
+}
+const median=a=>{ const v=a.filter(x=>x!=null).sort((x,y)=>x-y);
+  return v.length? (v.length%2? v[(v.length-1)/2] : (v[v.length/2-1]+v[v.length/2])/2) : null; };
+
+function buildLive(daily){
+  const m=LIVEDATA.markets.IN, L=280, step=daily?1:5, T=Math.ceil(L/step);
+  const bench=(m.bench_closes[S.bench]||m.bench_closes['NIFTY 500']||Object.values(m.bench_closes)[0]).slice(-L);
+  const grid=c=>{ const g=[]; for(let i=c.length-1;i>=0;i-=step)g.unshift(c[i]); return g; };
+  const benchG=grid(bench);
+  const ckpt=S.model==='ckpt';
+  const RS_W=daily?63:13, RS_LAG=5;              // cockpit model: app lookback + "vs ~5 bars ago"
+  const first = ckpt? RS_W+RS_LAG : JDK_W1-1+JDK_W2-1;
+  const cA=ckpt?50:100, cB=ckpt?0:100;
+  const okc=c=>c&&c.length>=L&&c[c.length-L]>0;
+
+  /* axis series for one entity — a group of member closes, or a single stock */
+  function seriesAB(mem){
+    let A,B;
+    if(ckpt){
+      /* the Rotation-view concept: RS = MEDIAN of member Mansfield RS (aggSec),
+         ΔRS = change vs ~5 bars ago (drs). Optional 3-EMA on the RS series
+         tames the integer-median jitter before ΔRS is taken. */
+      const memRS=mem.map(c=>rollRS(grid(c),benchG,RS_W));
+      A=new Array(T).fill(null); B=new Array(T).fill(null);
+      for(let t=RS_W;t<T;t++) A[t]=median(memRS.map(r=>r[t]));
+      if(S.smooth){ let e=null; const k=2/4;
+        for(let t=RS_W;t<T;t++){ if(A[t]==null)continue; e=e==null?A[t]:A[t]*k+e*(1-k); A[t]=e; } }
+      for(let t=RS_W+RS_LAG;t<T;t++) if(A[t]!=null&&A[t-RS_LAG]!=null) B[t]=A[t]-A[t-RS_LAG];
+    }else{
+      const comp=new Array(L).fill(0);           // equal-weight composite, each member normalized to 1
+      mem.forEach(c=>{ const b=c[0]||1; for(let i=0;i<L;i++)comp[i]+=(c[i]||c[i-1]||b)/b; });
+      for(let i=0;i<L;i++)comp[i]/=mem.length;
+      const r=jdkSeries(comp,bench,step); A=r.rsr; B=r.rsm;
+    }
+    return {A,B};
+  }
+
+  /* pass 1 — entities: the groups, or (drill mode) the drilled group's own stocks */
+  let raw=[];
+  if(S.drill){
+    m.sectors.forEach(sec=>{
+      const g=S.mode==='sec' ? (GRP_LIVE[sec.name]||'Miscellaneous') : indLbl(sec.name);
+      if(g!==S.drill)return;
+      (sec.stocks||[]).forEach(st=>{ if(!okc(st.c))return;
+        const {A,B}=seriesAB([st.c.slice(-L)]);
+        raw.push({name:st.sym,full:st.nm,A,B,_n:1}); });
+    });
+    raw.sort((a,b)=>(b.A[T-1]??-1e9)-(a.A[T-1]??-1e9));
+    raw=raw.slice(0,30);                          // top 30 members by current strength
+  }else{
+    const groups={};
+    m.sectors.forEach(sec=>{
+      const g=S.mode==='sec' ? (GRP_LIVE[sec.name]||'Miscellaneous') : indLbl(sec.name);
+      (sec.stocks||[]).forEach(st=>{ if(!okc(st.c))return;
+        (groups[g]=groups[g]||[]).push(st.c.slice(-L)); });
+    });
+    for(const g in groups){
+      const mem=groups[g]; if(mem.length<(S.mode==='sec'?3:4))continue;
+      const {A,B}=seriesAB(mem);
+      raw.push({name:g,A,B,_n:mem.length});
+    }
+    raw.sort((a,b)=>b._n-a._n);
+    if(S.mode!=='sec') raw=raw.slice(0,40);        // industries: 40 largest groups
+  }
   if(!raw.length) return [];
-  /* pass 2 — balance the two axes cross-sectionally so X and Y carry similar
-     spread (JdK normalizes both; SMA-ratio momentum is naturally tighter) */
-  const first=JDK_W1-1+JDK_W2-1;
+
+  /* pass 2 — balance both axes cross-sectionally, map into the 100-centered
+     chart space, keep raw values for tooltips/list */
   let sx=0,sy=0,n=0;
-  raw.forEach(u=>{ for(let i=first;i<u.rsr.length;i++){ if(u.rsr[i]==null||u.rsm[i]==null)continue;
-    sx+=(u.rsr[i]-100)**2; sy+=(u.rsm[i]-100)**2; n++; }});
+  raw.forEach(u=>{ for(let i=first;i<T;i++){ if(u.A[i]==null||u.B[i]==null)continue;
+    sx+=(u.A[i]-cA)**2; sy+=(u.B[i]-cB)**2; n++; }});
   const kx=Math.min(40,2.8/Math.max(1e-4,Math.sqrt(sx/n))), ky=Math.min(40,2.8/Math.max(1e-4,Math.sqrt(sy/n)));
-  const out=raw.map(u=>{ const pts=[];
-    for(let i=first;i<u.rsr.length;i++){ if(u.rsr[i]==null||u.rsm[i]==null)continue;
-      pts.push({x:Math.max(91,Math.min(109,100+(u.rsr[i]-100)*kx)),
-                y:Math.max(91,Math.min(109,100+(u.rsm[i]-100)*ky))}); }
-    return {name:u.name,pts}; });
-  /* shared date grid (same L/step/windows for every group) */
+  const mkPts=u=>{ const pts=[],vals=[];
+    for(let i=first;i<T;i++){ if(u.A[i]==null||u.B[i]==null)continue;
+      pts.push({x:Math.max(91,Math.min(109,100+(u.A[i]-cA)*kx)),
+                y:Math.max(91,Math.min(109,100+(u.B[i]-cB)*ky))});
+      vals.push({a:u.A[i],b:u.B[i]}); }
+    return {name:u.name,full:u.full,pts,vals}; };
+  const out=raw.map(mkPts);
+
+  /* watchlist overlay — your ⭐ symbols, same math & SAME scaling, drawn as diamonds */
+  WATCHU=[];
+  if(S.showWatch&&WATCH.length){
+    WATCH.forEach(sym=>{ const st=SYMIDX[sym]; if(!st||!okc(st.c))return;
+      const {A,B}=seriesAB([st.c.slice(-L)]);
+      const u=mkPts({name:sym,full:st.nm,A,B});
+      if(u.pts.length>=8) WATCHU.push(u); });
+  }
+
+  /* shared date grid (same L/step/windows for every entity) */
   const dsAll=[]; for(let i=m.dates.length-1;i>=0;i-=step) dsAll.unshift(m.dates[i]);
-  const ds=dsAll.slice(-Math.ceil(L/step));
+  const ds=dsAll.slice(-T);
   const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const fmt=s=>{ const d=new Date(s); return isNaN(d)?String(s):(daily?'':'wk of ')+d.getDate()+' '+M[d.getMonth()]+' '+String(d.getFullYear()).slice(2); };
-  DATES=[]; for(let i=first;i<Math.ceil(L/step);i++) DATES.push(fmt(ds[i]||''));
-  out.sort((a,b)=>a.name.localeCompare(b.name));
+  DATES=[]; for(let i=first;i<T;i++) DATES.push(fmt(ds[i]||''));
+  if(!S.drill) out.sort((a,b)=>a.name.localeCompare(b.name));   // drill keeps strength order
   return out;
 }
 
@@ -331,13 +425,16 @@ function mkDates(W,daily){
 }
 
 /* ---------- state ---------- */
-const S={ mode:'sec', tf:'W', t:0, playing:true, speed:1, tail:10,
+const S={ mode:'sec', tf:'W', model:'jdk', bench:'NIFTY 500', smooth:false, showWatch:false, drill:null,
+  t:0, playing:true, speed:1, tail:10,
   zoom:'fit', labels:'auto', hover:null, pins:new Set(), q:'',
   view:{cx:100,cy:100,s:30}, tView:{cx:100,cy:100,s:30}, drag:null };
 let U=[], W=0, DATES=[], EVENTS=[];
+let SYMIDX={}, WATCH=[], WATCHU=[];              // live: sym -> {c,nm} · starred syms (mc_watch) · watch overlay series
 
 function build(){
   const daily=S.tf==='D';
+  WATCHU=[];                                   // repopulated by buildLive when the overlay is on
   if(LIVE){
     U=buildLive(daily);
     W=U.length?U[0].pts.length:0;
@@ -426,12 +523,19 @@ function draw(){
   ctx.strokeStyle='rgba(255,255,255,.16)'; ctx.beginPath();
   ctx.moveTo(x100,0);ctx.lineTo(x100,CH); ctx.moveTo(0,y100);ctx.lineTo(CW,y100); ctx.stroke();
 
-  /* axis tick labels */
+  /* axis tick labels (chart units only make sense in JdK mode; the cockpit
+     model's RS/ΔRS live on their own scales — center hints instead) */
+  const CKPT=LIVE&&S.model==='ckpt';
   ctx.font='10px '+css.getPropertyValue('--mono'); ctx.fillStyle='rgba(255,255,255,.22)';
-  ctx.textAlign='center';
-  for(let gx=Math.ceil(wx(0)/st)*st; gx<wx(CW); gx+=st){ if(Math.abs(gx-100)<1e-9)continue; ctx.fillText(+gx.toFixed(1)+'',sx(gx),y100+13); }
-  ctx.textAlign='left';
-  for(let gy=Math.ceil(wy(CH)/st)*st; gy<wy(0); gy+=st){ if(Math.abs(gy-100)<1e-9)continue; ctx.fillText(+gy.toFixed(1)+'',x100+6,sy(gy)+3); }
+  if(!CKPT){
+    ctx.textAlign='center';
+    for(let gx=Math.ceil(wx(0)/st)*st; gx<wx(CW); gx+=st){ if(Math.abs(gx-100)<1e-9)continue; ctx.fillText(+gx.toFixed(1)+'',sx(gx),y100+13); }
+    ctx.textAlign='left';
+    for(let gy=Math.ceil(wy(CH)/st)*st; gy<wy(0); gy+=st){ if(Math.abs(gy-100)<1e-9)continue; ctx.fillText(+gy.toFixed(1)+'',x100+6,sy(gy)+3); }
+  }else{
+    ctx.textAlign='center'; ctx.fillText('RS 50',x100,y100+14);
+    ctx.textAlign='left';   ctx.fillText('ΔRS 0',x100+6,y100-6);
+  }
 
   /* quadrant names */
   ctx.font='700 12px system-ui'; ctx.textAlign='right';
@@ -449,8 +553,11 @@ function draw(){
 
   /* axis captions */
   ctx.save(); ctx.fillStyle='rgba(255,255,255,.25)'; ctx.font='600 10.5px system-ui';
-  ctx.textAlign='center'; ctx.fillText('RS-RATIO  →  relative strength vs NIFTY 500',CW/2,CH-6);
-  ctx.translate(10,CH/2); ctx.rotate(-Math.PI/2); ctx.fillText('RS-MOMENTUM  →',0,0); ctx.restore();
+  ctx.textAlign='center';
+  ctx.fillText(CKPT?'RS  →  Mansfield relative strength vs NIFTY 500 · median of members · 50 = neutral'
+                   :'RS-RATIO  →  relative strength vs NIFTY 500',CW/2,CH-6);
+  ctx.translate(10,CH/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(CKPT?'ΔRS  →  RS momentum (vs 5 bars ago)':'RS-MOMENTUM  →',0,0); ctx.restore();
 
   const focus=focusSet();
   /* event pulses */
@@ -510,6 +617,25 @@ function draw(){
     u._sx=X; u._sy=Y; u._q=q; u._hx=h.x; u._hy=h.y; u._ang=ang;
   });
 
+  /* ---- watchlist overlay: ⭐ diamonds with a short trail ---- */
+  WATCHU.forEach(u=>{
+    const h=sample(u.pts,Math.min(S.t,u.pts.length-1));
+    const X=sx(h.x),Y=sy(h.y),q=quad(h.x,h.y),col=QCOL[q];
+    /* short 5-bar trail, thin, accent-tinted */
+    const t0=Math.max(0,Math.min(S.t,u.pts.length-1)-5);
+    ctx.strokeStyle=C.accent+'55'; ctx.lineWidth=1.2; ctx.beginPath();
+    for(let k=0;k<=10;k++){ const p=sample(u.pts,t0+(Math.min(S.t,u.pts.length-1)-t0)*(k/10));
+      k?ctx.lineTo(sx(p.x),sy(p.y)):ctx.moveTo(sx(p.x),sy(p.y)); }
+    ctx.stroke();
+    ctx.save(); ctx.translate(X,Y); ctx.rotate(Math.PI/4);
+    ctx.fillStyle=col; ctx.strokeStyle=C.accent; ctx.lineWidth=1.6;
+    ctx.fillRect(-4,-4,8,8); ctx.strokeRect(-4,-4,8,8); ctx.restore();
+    ctx.font='10px system-ui';
+    ctx.strokeStyle='rgba(10,12,16,.85)'; ctx.lineWidth=3; ctx.strokeText('⭐'+u.name,X+8,Y+3);
+    ctx.fillStyle=C.accent; ctx.fillText('⭐'+u.name,X+8,Y+3);
+    u._sx=X; u._sy=Y; u._q=q; u._hx=h.x; u._hy=h.y; u._ang=0; u._watch=true;
+  });
+
   /* ---- labels (collision-aware) ---- */
   if(S.labels!=='off'){
     ctx.font='11px system-ui';
@@ -552,14 +678,17 @@ function buildList(){
     r.onmouseenter=()=>{S.hover=r.dataset.n;};
     r.onmouseleave=()=>{if(S.hover===r.dataset.n)S.hover=null;};
     r.onclick=()=>{togglePin(r.dataset.n);};
+    r.ondblclick=()=>{ if(LIVE&&!S.drill)enterDrill(r.dataset.n); };
   });
 }
 let lastListT=-1;
 function updList(){
   if(Math.abs(S.t-lastListT)<0.15&&!S._forceList)return; lastListT=S.t;S._forceList=false;
   const rows=[...listEl.querySelectorAll('.row')];
+  const iv0=u=>u.vals?u.vals[Math.max(0,Math.min(u.vals.length-1,Math.round(S.t)))]:null;
+  const ck=LIVE&&S.model==='ckpt';
   const snap=U.map(u=>{const p=sample(u.pts,S.t);const p2=sample(u.pts,Math.max(0,S.t-0.35));
-    return {u,p,ang:Math.atan2(-(p.y-p2.y),p.x-p2.x)};}).sort((a,b)=>b.p.x-a.p.x);
+    return {u,p,iv:iv0(u),ang:Math.atan2(-(p.y-p2.y),p.x-p2.x)};}).sort((a,b)=>b.p.x-a.p.x);
   const q=S.q.toLowerCase();
   snap.forEach((s,i)=>{
     const r=rows[i]; if(!r)return;
@@ -570,9 +699,14 @@ function updList(){
     const Q=quad(s.p.x,s.p.y);
     r.querySelector('.dot').style.background=QCOL[Q];
     r.querySelector('.nm').textContent=s.u.name;
+    r.title=s.u.full||'';
     const vr=r.querySelector('.vr'),vm=r.querySelector('.vm');
-    vr.textContent=s.p.x.toFixed(1); vm.textContent=s.p.y.toFixed(1);
-    vr.style.color=s.p.x>=100?C.green:C.red; vm.style.color=s.p.y>=100?C.green:C.red;
+    if(s.iv){ vr.textContent=ck?Math.round(s.iv.a):s.iv.a.toFixed(1);
+              vm.textContent=ck?(s.iv.b>0?'+':'')+Math.round(s.iv.b):s.iv.b.toFixed(1);
+              vr.style.color=(ck?s.iv.a>=50:s.iv.a>=100)?C.green:C.red;
+              vm.style.color=(ck?s.iv.b>=0:s.iv.b>=100)?C.green:C.red; }
+    else{ vr.textContent=s.p.x.toFixed(1); vm.textContent=s.p.y.toFixed(1);
+          vr.style.color=s.p.x>=100?C.green:C.red; vm.style.color=s.p.y>=100?C.green:C.red; }
     const hd=r.querySelector('.hd'); hd.style.color=QCOL[Q];
     hd.firstElementChild.style.transform=`rotate(${s.ang}rad)`;
   });
@@ -594,7 +728,8 @@ const tip=document.getElementById('tip');
 function updTip(mx,my){
   let best=null,bd=18*18;
   U.forEach(u=>{const d=(u._sx-mx)**2+(u._sy-my)**2; if(d<bd){bd=d;best=u;}});
-  S.hover=best?best.name:S.hover&&null;
+  WATCHU.forEach(u=>{const d=(u._sx-mx)**2+(u._sy-my)**2; if(d<bd){bd=d;best=u;}});
+  S.hover=(best&&!best._watch)?best.name:null;
   if(!best){tip.style.display='none';return;}
   const q=best._q, col=QCOL[q];
   let wks=0; for(let w=Math.floor(S.t);w>0;w--){const p=best.pts[w]; if(quad(p.x,p.y)===q)wks++;else break;}
@@ -603,9 +738,15 @@ function updTip(mx,my){
     : q==='W'?(deg>150||deg<-150?'rolling over toward Lagging':'fading — momentum below 100')
     : q==='G'?(deg>25&&deg<155?'basing — curling toward Improving':'still sinking')
     : (deg>-65&&deg<65?'accelerating toward Leading':'stalling in Improving');
-  tip.innerHTML=`<b>${best.name}</b><span class="q" style="background:${col}22;color:${col}">${QNAME[q]}</span>
-    <table><tr><td>RS-Ratio</td><td>${best._hx.toFixed(2)}</td></tr>
-    <tr><td>RS-Momentum</td><td>${best._hy.toFixed(2)}</td></tr>
+  const ck=LIVE&&S.model==='ckpt';
+  const iv=best.vals?best.vals[Math.max(0,Math.min(best.vals.length-1,Math.round(S.t)))]:null;
+  const va=iv?(ck?Math.round(iv.a):iv.a.toFixed(2)):best._hx.toFixed(2);
+  const vb=iv?(ck?(iv.b>0?'+':'')+Math.round(iv.b):iv.b.toFixed(2)):best._hy.toFixed(2);
+  tip.innerHTML=`<b>${best._watch?'⭐ ':''}${best.name}</b><span class="q" style="background:${col}22;color:${col}">${QNAME[q]}</span>
+    ${best.full?`<div style="color:var(--muted);font-size:11px;margin-top:2px">${best.full}</div>`:''}
+    ${(!best._watch&&!S.drill&&LIVE)?`<div style="color:var(--dim);font-size:10.5px;margin-top:2px">double-click to drill into members</div>`:''}
+    <table><tr><td>${ck?(S.drill||best._watch?'RS':'RS (median)'):'RS-Ratio'}</td><td>${va}</td></tr>
+    <tr><td>${ck?'ΔRS (5-bar)':'RS-Momentum'}</td><td>${vb}</td></tr>
     <tr><td>In quadrant</td><td>${wks} ${S.tf==='D'?'day':'wk'}${wks===1?'':'s'}</td></tr></table>
     <div class="head">↻ ${headTxt}</div>`;
   tip.style.display='block';
@@ -618,19 +759,55 @@ function updTip(mx,my){
 const tlEl=document.getElementById('tl'), tlab=document.getElementById('tlab'),
       tailEl=document.getElementById('tail'), tailV=document.getElementById('tailv'),
       playBtn=document.getElementById('play'), picon=document.getElementById('picon');
+/* one-shot UI refresh — every interaction paints immediately even if the rAF
+   loop is throttled (background tab / embedded pane), and the date label is
+   always correct right after a view/model/timeframe switch */
+function syncUI(){
+  if(S.zoom==='fit')fitView();
+  draw();
+  tlEl.max=W-1; tlEl.value=S.t; tlab.textContent=DATES[Math.round(S.t)]||'—';
+  const ck=LIVE&&S.model==='ckpt';
+  document.getElementById('colA').textContent=ck?'RS':'RS-R';
+  document.getElementById('colB').textContent=ck?'ΔRS':'RS-M';
+  document.getElementById('smoothrow').style.display=ck?'':'none';
+  document.getElementById('watchrow').style.display=LIVE?'':'none';
+  document.getElementById('watchlab').textContent='⭐ WATCHLIST'+(LIVE?` (${WATCH.length})`:'');
+  const cr=document.getElementById('crumb');
+  if(S.drill){ cr.style.display=''; cr.innerHTML=`◂ All ${S.mode==='sec'?'sectors':'industries'} · <b>${S.drill}</b> — top ${U.length} members`; }
+  else cr.style.display='none';
+  document.getElementById('sub').textContent=(S.drill?S.drill+' — member stocks':'sector strength orbit')+' · vs '+(LIVE?S.bench:'NIFTY 500');
+  S._forceList=true; updList(); lastFeedKey=''; updFeed();
+}
 function setPlay(p){S.playing=p; picon.setAttribute('d',p?'M2 1.5 h3 v9 h-3 Z M7 1.5 h3 v9 h-3 Z':'M2 1.5 L10.5 6 L2 10.5 Z');}
 playBtn.onclick=()=>{ if(!S.playing&&S.t>=W-1) S.t=Math.min(S.tail+1,W-1);   // replay from the start of the window
   setPlay(!S.playing); };
-tlEl.oninput=e=>{S.t=+e.target.value; setPlay(false);};
-tailEl.oninput=e=>{S.tail=+e.target.value; tailV.textContent=S.tail;};
+tlEl.oninput=e=>{S.t=+e.target.value; setPlay(false); syncUI();};
+tailEl.oninput=e=>{S.tail=+e.target.value; tailV.textContent=S.tail; syncUI();};
 function segWire(id,attr,fn){ const el=document.getElementById(id);
   el.onclick=e=>{const b=e.target.closest('button');if(!b)return;
     el.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); fn(b.dataset[attr]);}; }
 segWire('spd','s',v=>S.speed=+v);
 segWire('zseg','z',v=>S.zoom=v);
 segWire('lseg','l',v=>S.labels=v);
-segWire('gseg','g',v=>{S.mode=v;S.pins.clear();S.t=0;build();S.t=Math.min(S.tail+1,W-1);setPlay(true);});
-segWire('tfseg','tf',v=>{S.tf=v;S.t=0;build();S.t=Math.min(S.tail+1,W-1);setPlay(true);});
+segWire('gseg','g',v=>{S.mode=v;S.drill=null;S.pins.clear();S.t=0;build();S.t=Math.min(S.tail+1,W-1);setPlay(true);syncUI();});
+segWire('tfseg','tf',v=>{S.tf=v;S.t=0;build();S.t=Math.min(S.tail+1,W-1);setPlay(true);syncUI();});
+segWire('mseg','m',v=>{S.model=v;S.t=0;build();S.t=W-1;setPlay(false);syncUI();});   // land on NOW to compare models
+segWire('sseg','sm',v=>{S.smooth=v==='smooth';const k=S.t;build();S.t=Math.min(k,W-1);syncUI();});
+segWire('wseg','w',v=>{S.showWatch=v==='on';const k=S.t;build();S.t=Math.min(k,W-1);syncUI();});
+document.getElementById('bsel').onchange=e=>{S.bench=e.target.value;const k=S.t;build();S.t=Math.min(k,W-1);syncUI();};
+/* ⚙ display popover */
+const dpop=document.getElementById('dpop');
+document.getElementById('disp').onclick=e=>{e.stopPropagation();dpop.classList.toggle('open');};
+dpop.onclick=e=>e.stopPropagation();
+addEventListener('click',()=>dpop.classList.remove('open'));
+/* drill-down: double-click a group head (or list row) → its member stocks; Esc / breadcrumb to exit */
+function enterDrill(g){ if(!LIVE||S.drill)return; S.drill=g; S.pins.clear(); S.hover=null;
+  build(); S.t=W-1; setPlay(false); syncUI(); }
+function exitDrill(){ if(!S.drill)return; S.drill=null; S.pins.clear(); S.hover=null;
+  build(); S.t=W-1; setPlay(false); syncUI(); }
+document.getElementById('crumb').onclick=exitDrill;
+cv.addEventListener('dblclick',()=>{ if(!LIVE)return;
+  if(!S.drill&&S.hover)enterDrill(S.hover); else if(S.drill&&!S.hover)exitDrill(); });
 document.getElementById('q').oninput=e=>{S.q=e.target.value.trim();S._forceList=true;};
 document.getElementById('clearpin').onclick=()=>{S.pins.clear();S._forceList=true;};
 
@@ -656,6 +833,7 @@ addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT')return;
   if(e.key==='ArrowRight'){setPlay(false);S.t=Math.min(W-1,Math.round(S.t)+1);}
   if(e.key==='ArrowLeft'){setPlay(false);S.t=Math.max(0,Math.round(S.t)-1);}
   if(e.key==='f'||e.key==='F'){S.zoom='fit';document.querySelector('#zseg [data-z=fit]').classList.add('on');document.querySelector('#zseg [data-z=fix]').classList.remove('on');}
+  if(e.key==='Escape')exitDrill();
 });
 
 /* info popover */
@@ -680,7 +858,7 @@ function frame(ts){
   updList(); updFeed();
   requestAnimationFrame(frame);
 }
-build(); resize(); S.t=S.tail+2; fitView(); S.view={...S.tView};
+build(); resize(); S.t=S.tail+2; fitView(); S.view={...S.tView}; syncUI();
 requestAnimationFrame(frame);
 
 /* ---- try live data.json (same-origin, like the app). Fallback: stay synthetic. ---- */
@@ -693,10 +871,17 @@ fetch('data.json?t='+Date.now(),{cache:'no-store'})
     b.textContent='LIVE'; b.classList.add('live');
     document.getElementById('foot').innerHTML=
       `<b>LIVE</b> — JdK-style RS-Ratio / RS-Momentum computed in-browser from <span style="font-family:var(--mono)">data.json</span> (generated ${GEN}; 300 daily closes per name) · equal-weight composites vs NIFTY 500 · ratio window 14, momentum window 4, axes balanced cross-sectionally. Exact JdK values are proprietary — geometry &amp; rotation behaviour match.`;
+    document.getElementById('mseg').style.display='';   // model toggle is a live-data feature
+    /* symbol index (watchlist + drill tooltips) & starred syms from the app's localStorage */
+    SYMIDX={}; d.markets.IN.sectors.forEach(sec=>(sec.stocks||[]).forEach(st=>SYMIDX[st.sym]={c:st.c,nm:st.nm}));
+    try{ WATCH=(JSON.parse(localStorage.getItem('mc_watch')||'[]')||[]).filter(s=>SYMIDX[s]); }catch(_){ WATCH=[]; }
+    const bs=document.getElementById('bsel');
+    bs.innerHTML=Object.keys(d.markets.IN.bench_closes).map(k=>`<option${k===S.bench?' selected':''}>${k}</option>`).join('');
+    bs.style.display='';
     S.t=0; build();
     S.t=W-1; setPlay(false);                   // land on NOW; press space to replay the window
-    S._forceList=true; lastFeedKey='';
     if(S.zoom==='fit') fitView(); S.view={...S.tView};
+    syncUI();
   })
   .catch(()=>{ /* no data.json here — keep the seeded mockup */ });
 </script>
