@@ -43,10 +43,8 @@ select#bsel:hover{border-color:var(--dim)}
 .drow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:4px 0;font-size:10.5px;letter-spacing:.06em;color:var(--dim);font-weight:700}
 .drow .seg button{padding:3.5px 9px;font-size:11.5px}
 /* drill-down breadcrumb */
-.crumb{position:absolute;top:10px;left:12px;z-index:6;background:rgba(13,16,22,.92);border:1px solid var(--accent);border-radius:9px;padding:4px 10px 4px 4px;font-size:12px;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:7px}
+.crumb{position:absolute;top:10px;left:12px;z-index:6;background:rgba(13,16,22,.92);border:1px solid var(--accent);border-radius:9px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--text)}
 .crumb:hover{background:var(--panel2)}
-.crumb .cb{background:var(--accent);color:#fff;border-radius:6px;padding:3px 10px;font-weight:700;font-size:11.5px}
-.crumb:hover .cb{background:var(--accent2)}
 .crumb b{color:var(--accent2)}
 
 /* ============ layout ============ */
@@ -285,25 +283,23 @@ const IND_ALIAS={"Business Process Outsourcing (BPO)/ Knowledge Process Outsourc
   "Road Assets - Toll Annuity Hybrid-Annuity":"Road Assets"};
 const indLbl=n=>IND_ALIAS[n]||n;
 
-const JDK_W=10, JDK_MOM=10;                      // WMA window · momentum lookback (bars of the sampled grid)
-const JDK_FIRST=(JDK_W-1)*2+JDK_MOM;             // warm-up before both axes are valid
+const JDK_W1=14, JDK_W2=10;                      // ratio window · momentum window (bars of the sampled grid)
 function jdkSeries(comp,bench,step){
-  /* Backtest-picked formulation (16 Jul 26, weekly IN sectors vs the old SMA-ratio
-     form: −45% quadrant chatter, better fwd L−G spread at 4w & 8w):
-       RS        = 100·comp/bench
-       RS-Ratio  = 100·WMA(RS,10)/WMA(WMA(RS,10),10)   — double-smoothed trend ratio
-       RS-Mom    = 100·RSR/RSR[10 bars ago]            — simple %-change of the ratio
-     The z-score (÷σ) momentum variant was tested and REJECTED: more chatter (200
-     events vs 86) and a negative Leading−Lagging forward spread on our data. */
-  const rs=[]; for(let i=comp.length-1;i>=0;i-=step) rs.unshift(100*comp[i]/bench[i]);
-  const denom=JDK_W*(JDK_W+1)/2;
-  const wma=a=>{const o=new Array(a.length).fill(null);
-    for(let i=JDK_W-1;i<a.length;i++){let s=0,ok=true;
-      for(let k=0;k<JDK_W;k++){const v=a[i-k];if(v==null){ok=false;break;}s+=v*(JDK_W-k);}
-      if(ok)o[i]=s/denom;}return o;};
-  const s1=wma(rs), s2=wma(s1);
-  const rsr=rs.map((_,i)=>(s1[i]!=null&&s2[i])?100*s1[i]/s2[i]:null);
-  const rsm=rsr.map((v,i)=>(v!=null&&rsr[i-JDK_MOM])?100*v/rsr[i-JDK_MOM]:null);
+  /* RS (3-EMA smoothed) → RS-Ratio = 100·RS/SMA(RS,W1) → RS-Mom = 100·RSR/SMA(RSR,W2).
+     SMA-ratio form is stable on smooth equal-weight composites (z·10 saturates);
+     the 3-EMA + a 10-bar momentum window kill boundary chatter so quadrant
+     transitions happen at real turns, not on weekly noise. */
+  const raw=[]; for(let i=comp.length-1;i>=0;i-=step) raw.unshift(comp[i]/bench[i]);
+  const rs=[]; let e=null; const k=2/4;           // 3-EMA pre-smooth
+  for(let i=0;i<raw.length;i++){ e=e==null?raw[i]:raw[i]*k+e*(1-k); rs.push(e); }
+  const sma=(a,i,w)=>{ let s=0; for(let j=i-w+1;j<=i;j++)s+=a[j]; return s/w; };
+  const rsr=[],rsm=[];
+  for(let i=0;i<rs.length;i++) rsr.push(i<JDK_W1-1?null:100*rs[i]/sma(rs,i,JDK_W1));
+  for(let i=0;i<rs.length;i++){
+    if(i<JDK_W1-1+JDK_W2-1){rsm.push(null);continue;}
+    let s=0; for(let j=i-JDK_W2+1;j<=i;j++)s+=rsr[j];
+    rsm.push(100*rsr[i]/(s/JDK_W2));
+  }
   return {rsr,rsm};
 }
 
@@ -333,7 +329,7 @@ function buildLive(daily){
   const benchG=grid(bench);
   const ckpt=S.model==='ckpt';
   const RS_W=daily?63:13, RS_LAG=5;              // cockpit model: app lookback + "vs ~5 bars ago"
-  const first = ckpt? RS_W+RS_LAG : JDK_FIRST;
+  const first = ckpt? RS_W+RS_LAG : JDK_W1-1+JDK_W2-1;
   const cA=ckpt?50:100, cB=ckpt?0:100;
   const okc=c=>c&&c.length>=L&&c[c.length-L]>0;
 
@@ -811,7 +807,7 @@ function syncUI(){
   document.getElementById('watchrow').style.display=LIVE?'':'none';
   document.getElementById('watchlab').textContent='⭐ WATCHLIST'+(LIVE?` (${WATCH.length})`:'');
   const cr=document.getElementById('crumb');
-  if(S.drill){ cr.style.display=''; cr.innerHTML=`<span class="cb">◂ Back to ${S.mode==='sec'?'sectors':'industries'}</span><b>${S.drill}</b><span style="color:var(--muted)">— top ${U.length} members</span>`; }
+  if(S.drill){ cr.style.display=''; cr.innerHTML=`◂ All ${S.mode==='sec'?'sectors':'industries'} · <b>${S.drill}</b> — top ${U.length} members`; }
   else cr.style.display='none';
   document.getElementById('sub').textContent=(S.drill?S.drill+' — member stocks':'sector strength orbit')+' · vs '+(LIVE?S.bench:'NIFTY 500');
   S._forceList=true; updList(); lastFeedKey=''; updFeed();
@@ -839,11 +835,9 @@ document.getElementById('disp').onclick=e=>{e.stopPropagation();dpop.classList.t
 dpop.onclick=e=>e.stopPropagation();
 addEventListener('click',()=>dpop.classList.remove('open'));
 /* drill-down: double-click a group head (or list row) → its member stocks; Esc / breadcrumb to exit */
-function enterDrill(g){ if(!LIVE||S.drill)return; S._prePins=new Set(S.pins);   // remember the pre-drill selection
-  S.drill=g; S.pins.clear(); S.hover=null;
+function enterDrill(g){ if(!LIVE||S.drill)return; S.drill=g; S.pins.clear(); S.hover=null;
   build(); S.t=W-1; setPlay(false); syncUI(); }
-function exitDrill(){ if(!S.drill)return; S.drill=null; S.hover=null;
-  S.pins=S._prePins||new Set(); S._prePins=null;   // restore the exact view you drilled in from
+function exitDrill(){ if(!S.drill)return; S.drill=null; S.pins.clear(); S.hover=null;
   build(); S.t=W-1; setPlay(false); syncUI(); }
 document.getElementById('crumb').onclick=exitDrill;
 cv.addEventListener('dblclick',()=>{ if(!LIVE)return;
