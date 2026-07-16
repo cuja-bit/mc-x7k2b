@@ -101,6 +101,10 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:cro
 .row .v{width:46px;text-align:right;font-family:var(--mono);font-size:11.5px}
 .row .hd{width:26px;text-align:center;flex:none}
 .row .hd svg{width:11px;height:11px;vertical-align:-1px}
+/* drill affordance — appears on row hover (live, not already drilled) */
+.row .drl{display:none;width:18px;height:18px;flex:none;align-items:center;justify-content:center;border:1px solid var(--accent);border-radius:5px;color:var(--accent2);font-size:11px;font-weight:700;cursor:pointer}
+.row .drl:hover{background:var(--accent);color:#fff}
+.list.candrill .row:hover .drl{display:flex}
 .side-f{padding:8px 12px;border-top:1px solid var(--border);font-size:10.5px;color:var(--dim);flex:none;display:flex;justify-content:space-between;align-items:center}
 .side-f button{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:10.5px;padding:2px 8px;cursor:pointer}
 .side-f button:hover{color:var(--text)}
@@ -185,7 +189,7 @@ footer b{color:var(--muted)}
     <div style="border-color:rgba(242,181,68,.4)"><b style="color:var(--yellow)">WEAKENING ↘</b><span>still strong, losing steam — tighten, take profits</span></div>
   </div>
   <p>Sectors orbit <b>clockwise</b>: Improving → Leading → Weakening → Lagging. The comet tail shows the path — each segment keeps the colour of the quadrant it passed through, so you can read the whole journey at a glance. Dots along the tail are one bar apart: <b>wider spacing = faster rotation</b>.</p>
-  <p><b>Hover</b> a head for details · <b>click</b> to pin (multiple allowed) · <b>double-click</b> a sector to drill into its member stocks (breadcrumb or <b>Esc</b> to come back) · <b>wheel</b> zooms, <b>drag</b> pans · <b>space</b> plays/pauses · <b>←/→</b> step one bar · <b>F</b> re-fits the camera.</p>
+  <p><b>Hover</b> a head for details · <b>click</b> to pin (multiple allowed) · <b>double-click</b> a sector — or hover a list row and hit <b>▸</b> — to drill into its member stocks (breadcrumb or <b>Esc</b> to come back) · <b>wheel</b> zooms, <b>drag</b> pans · <b>space</b> plays/pauses · <b>←/→</b> step one bar · <b>F</b> re-fits the camera.</p>
   <p>The <b>⚙</b> menu holds the quieter options: zoom preset, label density, <b>ΔRS smoothing</b> (Cockpit model), and the <b>⭐ watchlist overlay</b> — your starred symbols drawn as diamonds on the same map. The benchmark selector (header) re-bases every RS calculation.</p>
 </div></div>
 
@@ -479,8 +483,14 @@ const wx=px=>(px-CW/2)/S.view.s+S.view.cx, wy=py=>S.view.cy-(py-CH/2)/S.view.s;
 function fitView(){
   let x0=99,x1=101,y0=99,y1=101;
   const focus=focusSet();
-  U.forEach(u=>{ if(focus&&!focus.has(u.name))return;
-    for(let w=Math.max(0,Math.ceil(S.t-S.tail));w<=S.t;w++){ const p=u.pts[Math.min(W-1,w)];
+  const watchFocus=S.showWatch&&WATCHU.length>0;
+  const ents=[];                                  // what the camera should frame
+  U.forEach(u=>{ if(focus){ if(focus.has(u.name)) ents.push(u); }
+                 else if(!watchFocus) ents.push(u); });
+  if(S.showWatch) WATCHU.forEach(u=>ents.push(u));
+  ents.forEach(u=>{
+    for(let w=Math.max(0,Math.ceil(S.t-S.tail));w<=Math.min(S.t,u.pts.length-1);w++){
+      const p=u.pts[Math.min(u.pts.length-1,Math.max(0,w))];
       x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y);} });
   const padX=(x1-x0)*0.14+1.2, padY=(y1-y0)*0.14+1.2;
   x0-=padX;x1+=padX;y0-=padY;y1+=padY;
@@ -516,7 +526,7 @@ function draw(){
   for(let gy=Math.ceil(wy(CH)/st)*st; gy<wy(0); gy+=st){ const py=sy(gy); ctx.moveTo(0,py);ctx.lineTo(CW,py); }
   ctx.stroke();
   /* rings (distance from 100,100) */
-  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.setLineDash([3,5]);
+  ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.setLineDash([4,5]);
   [5,10].forEach(r=>{ ctx.beginPath(); ctx.ellipse(x100,y100,r*S.view.s,r*0.88*S.view.s,0,0,7); ctx.stroke(); });
   ctx.setLineDash([]);
   /* center cross */
@@ -560,6 +570,7 @@ function draw(){
   ctx.fillText(CKPT?'ΔRS  →  RS momentum (vs 5 bars ago)':'RS-MOMENTUM  →',0,0); ctx.restore();
 
   const focus=focusSet();
+  const watchFocus=S.showWatch&&WATCHU.length>0;   // watchlist shown → the map is ABOUT the watchlist
   /* event pulses */
   EVENTS.forEach(e=>{ const dt=S.t-e.w; if(dt<0||dt>0.7)return;
     const u=U.find(x=>x.name===e.name); if(!u)return; if(focus&&!focus.has(e.name))return;
@@ -570,7 +581,8 @@ function draw(){
   /* ---- tails + heads ---- */
   const heads=[];
   U.forEach(u=>{
-    const dimmed=(focus&&!focus.has(u.name))||(S.hover&&S.hover!==u.name&&!focus);
+    const dimmed=(focus&&!focus.has(u.name))||(S.hover&&S.hover!==u.name&&!focus)
+                 ||(watchFocus&&!focus&&!S.hover);   // watch overlay on + nothing pinned/hovered → fade the whole universe
     const t0=Math.max(0,S.t-S.tail);
     const K=Math.max(14,Math.min(44,S.tail*3));
     let prev=null;
@@ -617,16 +629,35 @@ function draw(){
     u._sx=X; u._sy=Y; u._q=q; u._hx=h.x; u._hy=h.y; u._ang=ang;
   });
 
-  /* ---- watchlist overlay: ⭐ diamonds with a short trail ---- */
+  /* ---- watchlist overlay: ⭐ diamonds. Short accent trail normally; when the
+     watchlist IS the focus (universe faded) give it the full comet treatment. ---- */
   WATCHU.forEach(u=>{
-    const h=sample(u.pts,Math.min(S.t,u.pts.length-1));
+    const tw=Math.min(S.t,u.pts.length-1);
+    const h=sample(u.pts,tw);
     const X=sx(h.x),Y=sy(h.y),q=quad(h.x,h.y),col=QCOL[q];
-    /* short 5-bar trail, thin, accent-tinted */
-    const t0=Math.max(0,Math.min(S.t,u.pts.length-1)-5);
-    ctx.strokeStyle=C.accent+'55'; ctx.lineWidth=1.2; ctx.beginPath();
-    for(let k=0;k<=10;k++){ const p=sample(u.pts,t0+(Math.min(S.t,u.pts.length-1)-t0)*(k/10));
-      k?ctx.lineTo(sx(p.x),sy(p.y)):ctx.moveTo(sx(p.x),sy(p.y)); }
-    ctx.stroke();
+    const t0=Math.max(0,tw-(watchFocus?S.tail:5));
+    if(watchFocus){
+      const K=Math.max(14,Math.min(44,S.tail*3));
+      let prev=null;
+      for(let k=0;k<=K;k++){
+        const tt=t0+(tw-t0)*(k/K), p=sample(u.pts,tt);
+        if(prev){ const f=k/K, qq=quad((prev.x+p.x)/2,(prev.y+p.y)/2);
+          ctx.strokeStyle=QCOL[qq]+Math.round(Math.pow(f,1.5)*0.55*255).toString(16).padStart(2,'0');
+          ctx.lineWidth=0.8+f*2.4; ctx.lineCap='round';
+          ctx.beginPath(); ctx.moveTo(sx(prev.x),sy(prev.y)); ctx.lineTo(sx(p.x),sy(p.y)); ctx.stroke(); }
+        prev=p;
+      }
+      for(let w=Math.ceil(t0);w<=Math.floor(tw);w+=(S.tf==='D'?5:1)){
+        const p=u.pts[w], f=(w-t0)/Math.max(1,tw-t0);
+        ctx.beginPath(); ctx.fillStyle=QCOL[quad(p.x,p.y)]+Math.round((0.25+f*0.3)*255).toString(16).padStart(2,'0');
+        ctx.arc(sx(p.x),sy(p.y),1.7,0,7); ctx.fill();
+      }
+    }else{
+      ctx.strokeStyle=C.accent+'55'; ctx.lineWidth=1.2; ctx.beginPath();
+      for(let k=0;k<=10;k++){ const p=sample(u.pts,t0+(tw-t0)*(k/10));
+        k?ctx.lineTo(sx(p.x),sy(p.y)):ctx.moveTo(sx(p.x),sy(p.y)); }
+      ctx.stroke();
+    }
     ctx.save(); ctx.translate(X,Y); ctx.rotate(Math.PI/4);
     ctx.fillStyle=col; ctx.strokeStyle=C.accent; ctx.lineWidth=1.6;
     ctx.fillRect(-4,-4,8,8); ctx.strokeRect(-4,-4,8,8); ctx.restore();
@@ -673,16 +704,19 @@ function buildList(){
     <span class="dot"></span><span class="nm">${u.name}</span>
     <span class="v vr"></span><span class="v vm"></span>
     <span class="hd"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6 h7 M6.5 2.5 L10 6 L6.5 9.5"/></svg></span>
+    <span class="drl" title="Drill into member stocks (or double-click the row / bubble)">▸</span>
   </div>`).join('');
   listEl.querySelectorAll('.row').forEach(r=>{
     r.onmouseenter=()=>{S.hover=r.dataset.n;};
     r.onmouseleave=()=>{if(S.hover===r.dataset.n)S.hover=null;};
     r.onclick=()=>{togglePin(r.dataset.n);};
     r.ondblclick=()=>{ if(LIVE&&!S.drill)enterDrill(r.dataset.n); };
+    r.querySelector('.drl').onclick=e=>{e.stopPropagation(); if(LIVE&&!S.drill)enterDrill(r.dataset.n);};
   });
 }
 let lastListT=-1;
 function updList(){
+  listEl.classList.toggle('candrill',LIVE&&!S.drill);
   if(Math.abs(S.t-lastListT)<0.15&&!S._forceList)return; lastListT=S.t;S._forceList=false;
   const rows=[...listEl.querySelectorAll('.row')];
   const iv0=u=>u.vals?u.vals[Math.max(0,Math.min(u.vals.length-1,Math.round(S.t)))]:null;
@@ -845,6 +879,7 @@ document.getElementById('popbg').onclick=e=>{if(e.target.id==='popbg')e.target.c
 let lastTs=0;
 function frame(ts){
   const dt=Math.min(0.05,(ts-lastTs)/1000)||0; lastTs=ts;
+  if(CW<=0||CH<=0)resize();                       // self-heal: tab was hidden when the ResizeObserver first fired
   if(S.playing){ S.t+=dt*S.speed*(S.tf==='D'?4.2:1.15);
     if(S.t>=W-1){S.t=W-1;setPlay(false);} }
   /* camera */
