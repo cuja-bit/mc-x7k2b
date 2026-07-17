@@ -477,9 +477,10 @@ select option:checked{background:var(--accent-bg);color:#fff}
 .rg-scrub{flex:1;min-width:160px;display:flex;align-items:center;gap:10px}
 .rg-scrub input[type=range]{flex:1;min-width:100px}
 #rgtlab{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);white-space:nowrap;min-width:122px;text-align:right;margin-right:6px}
+#rgtlab.rg-live{color:var(--accent);font-weight:700}
 select.rg-sel{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:5px 8px;font:inherit;font-size:12px;font-weight:600;outline:none;cursor:pointer}
 select.rg-sel:hover{border-color:var(--border2)}
-.rg-wrap{position:relative;flex:1;min-height:480px}
+.rg-wrap{position:relative;flex:1;min-height:460px;height:calc(100vh - 360px)}
 #rgcv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
 .rg-tip{position:absolute;pointer-events:none;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;font-size:12px;min-width:190px;box-shadow:0 8px 28px rgba(0,0,0,.45);display:none;z-index:5}
 .rg-tip b{font-size:13px}
@@ -487,7 +488,7 @@ select.rg-sel:hover{border-color:var(--border2)}
 .rg-tip table{margin-top:6px;border-collapse:collapse}
 .rg-tip td{padding:1.5px 0;font-family:'IBM Plex Mono',monospace;font-size:11.5px}
 .rg-tip td:first-child{color:var(--dim);font-family:inherit;padding-right:14px}
-.rg-feed{position:absolute;left:12px;bottom:10px;display:flex;flex-direction:column-reverse;gap:4px;z-index:4;pointer-events:none}
+.rg-feed{display:flex;flex-wrap:wrap;gap:6px;padding:7px 12px;border-top:1px solid var(--border);min-height:20px;align-items:center}
 .rg-feed div{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:3px 10px;font-size:11px;color:var(--muted);opacity:.93}
 .rg-feed b{color:var(--text);font-weight:600}
 .rg-crumb{position:absolute;top:10px;left:12px;z-index:6;background:var(--panel2);border:1px solid var(--accent);border-radius:9px;padding:4px 10px 4px 4px;font-size:12px;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:7px}
@@ -618,30 +619,30 @@ select.rg-sel:hover{border-color:var(--border2)}
     <div class="rg-stage">
       <div class="rg-bar">
         <button class="rg-playbtn" id="rgplay" title="Play / pause (space)"><svg viewBox="0 0 12 12" width="13" height="13" fill="currentColor"><path id="rgpicon" d="M2 1.5 L10.5 6 L2 10.5 Z"/></svg></button>
-        <span class="rg-seg" id="rgspd"><button data-s="0.25">\¼\×</button><button data-s="0.5">\½\×</button><button data-s="1" class="on">1\×</button><button data-s="2">2\×</button><button data-s="4">4\×</button></span>
-        <span class="rg-scrub"><input type="range" id="rgtl" min="0" max="100" step="0.01" value="0"><span id="rgtlab">\—</span></span>
+        <span class="rg-seg" id="rgspd"><button data-s="0.25">¼×</button><button data-s="0.5">½×</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button></span>
+        <span class="rg-scrub"><input type="range" id="rgtl" min="0" max="100" step="0.01" value="0"><span id="rgtlab">—</span></span>
         <span class="rg-ctl">TAIL <input type="range" id="rgtail" min="3" max="30" step="1" value="10"><span class="rg-val" id="rgtailv">10</span></span>
-        <span class="rg-ctl"><span class="rg-seg" id="rgzseg"><button data-z="fit" class="on">Fit</button><button data-z="fix">100\±10</button></span></span>
+        <span class="rg-ctl"><span class="rg-seg" id="rgzseg"><button data-z="fit" class="on">Fit</button><button data-z="fix">100±10</button></span></span>
         <span class="rg-ctl">LABELS <span class="rg-seg" id="rglseg"><button data-l="auto" class="on">Auto</button><button data-l="all">All</button><button data-l="off">Off</button></span></span>
-        <span class="rg-ctl" id="rgwatchrow"><span id="rgwatchlab">\⭐ (0)</span><span class="rg-seg" id="rgwseg"><button data-w="off" class="on">Hide</button><button data-w="on">Show</button></span></span>
+        <span class="rg-ctl" id="rgwatchrow"><span id="rgwatchlab">⭐ Watchlist (0)</span><span class="rg-seg" id="rgwseg"><button data-w="off" class="on">Hide</button><button data-w="on">Show</button></span></span>
       </div>
       <div class="rg-bar" style="border-bottom:1px solid var(--border)">
         <select class="rg-sel" id="rgbsel" title="Benchmark — RS is measured against this index"></select>
         <span class="rg-seg" id="rggseg"><button data-g="sec" class="on">Sectors</button><button data-g="ind">Industries</button></span>
         <span class="rg-seg" id="rgtfseg"><button data-tf="D" class="on">Daily</button><button data-tf="W">Weekly</button></span>
         <span style="flex:1"></span>
-        <span class="rg-ctl" style="color:var(--dim);font-weight:500;letter-spacing:0">tails remember their quadrants \· double-click a bubble to drill into members</span>
+        <span class="rg-ctl" style="color:var(--dim);font-weight:500;letter-spacing:0">tails remember their quadrants · double-click a bubble to drill into members</span>
       </div>
       <div class="rg-wrap">
         <canvas id="rgcv"></canvas>
         <div class="rg-tip" id="rgtip"></div>
-        <div class="rg-feed" id="rgfeed"></div>
         <div class="rg-crumb" id="rgcrumb" style="display:none" title="Back (Esc)"></div>
-        <div class="rg-msg" id="rgmsg" style="display:none">waiting for live data\…</div>
+        <div class="rg-msg" id="rgmsg" style="display:none">waiting for live data…</div>
       </div>
+      <div class="rg-feed" id="rgfeed"></div>
     </div>
     <div class="rg-aside">
-      <div class="rg-sideh"><input id="rgq" placeholder="filter\…" autocomplete="off"></div>
+      <div class="rg-sideh"><input id="rgq" placeholder="filter…" autocomplete="off"></div>
       <div class="rg-cols"><span>RANKED BY STRENGTH</span><span>RS-R</span><span>RS-M</span><span></span></div>
       <div class="rg-list" id="rglist"></div>
       <div class="rg-sidef"><span id="rgpincount">click a row to pin</span><button id="rgclearpin">clear</button></div>
@@ -862,7 +863,7 @@ function renderRotation(){
         <div class="meta"><span class="mstats">
           <span title="RRG RS-Ratio — trend of the sector composite vs the benchmark (100 = neutral). Same number as the RRG tab.">RS-R <b style="color:${g._rsr>=100?'var(--green)':'var(--red)'}">${g._rsr.toFixed(1)}</b></span>
           <span title="RRG RS-Momentum — is the outperformance accelerating (>=100) or fading (<100). Same number as the RRG tab." style="color:${g._rsm>=100?'var(--green)':'var(--red)'}">RS-M ${g._rsm.toFixed(1)}</span>
-          ${g.rsPart!=null&&g.rsPart<50?'<span style="color:var(--yellow);font-weight:700" title="Narrow: fewer than half the members have RS>=50 — the composite is carried by few stocks">\u26a0 narrow</span>':''}
+          ${g._rsr>=100&&g.rsPart!=null&&g.rsPart<50?'<span style="color:var(--yellow);font-weight:700" title="Narrow: the composite is strong but fewer than half the members have RS>=50 — carried by few stocks">\u26a0 narrow</span>':''}${g._rsr<100&&g.rsPart!=null&&g.rsPart>=55?'<span style="color:var(--green);font-weight:700" title="Broad: most members already have RS>=50 while the composite still lags — participation building under the hood">\u25b2 broad</span>':''}
           <span title="% of members with RS>=50 — participation info (no longer gates the quadrant)" style="color:${g.rsPart>=60?'var(--green)':g.rsPart<=40?'var(--red)':'var(--muted)'}">${g.rsPart!=null?g.rsPart+'% RS≥50':''}</span>
           <span title="% of members above their 20EMA (participation)" style="color:${g.a20>=70?'var(--green)':g.a20<35?'var(--red)':'var(--muted)'}">${g.a20!=null?g.a20+'% >20E':''}</span>
           <span title="Sector 5-day relative volume">${g.relvol!=null?rvx(g.relvol)+' vol':''}</span></span>
@@ -1688,6 +1689,7 @@ function render(){
   const calMode = !!S.calView && !patMode && !scrMode;
   const rrgMode = !!S.rrgView && !patMode && !scrMode && !calMode;
   syncTabs(patMode?"pat":scrMode?"scr":calMode?"cal":rrgMode?"rrg":"ana");
+  if(!rrgMode){ const lb=document.getElementById("cbarlb"); if(lb)lb.style.display=""; }
   { const pc=document.getElementById("patctl"), sc=document.getElementById("scrctl"), b2=document.getElementById("bar2");
     if(pc)pc.classList.toggle('hide',!patMode); if(sc)sc.classList.toggle('hide',!scrMode);
     if(b2)b2.classList.toggle('hide', scrMode||calMode||rrgMode);
@@ -2324,6 +2326,10 @@ async function loadLive(){
     ctx.save(); ctx.fillStyle=C.dim; ctx.font='600 10.5px Inter,system-ui';
     ctx.textAlign='center'; ctx.fillText('RS-RATIO  →  relative strength vs '+R.bench,CW/2,CH-6);
     ctx.translate(10,CH/2); ctx.rotate(-Math.PI/2); ctx.fillText('RS-MOMENTUM  →',0,0); ctx.restore();
+    if(R.playing&&DATES.length){ ctx.save(); ctx.globalAlpha=.25; ctx.fillStyle=C.accent;
+      ctx.font='700 21px "IBM Plex Mono",monospace'; ctx.textAlign='center';
+      ctx.fillText(DATES[Math.max(0,Math.min(DATES.length-1,Math.round(R.t)))]||'',CW/2,30);
+      ctx.restore(); ctx.textAlign='left'; }
 
     const focus=focusSet(), watchFocus=R.showWatch&&WATCHU.length>0;
     EVENTS.forEach(e=>{ const dt=R.t-e.w; if(dt<0||dt>0.7)return;
@@ -2495,7 +2501,7 @@ async function loadLive(){
 
   const feedEl=G('rgfeed');
   function updFeed(){
-    const ev=EVENTS.filter(e=>e.w<=R.t).slice(-4);
+    const ev=EVENTS.filter(e=>e.w<=R.t).slice(-4).reverse();   // newest first, horizontal strip
     const key=ev.map(e=>e.w+e.name).join('|'); if(key===lastFeedKey)return; lastFeedKey=key;
     const QC=QCOL();
     feedEl.innerHTML=ev.map(e=>`<div><b>${e.name}</b> <span style="font-weight:700;color:${QC[e.to]}">→ ${QNAME[e.to]}</span> · ${DATES[e.w]||''}</div>`).join('');
@@ -2526,16 +2532,25 @@ async function loadLive(){
 
   /* ---------- controls ---------- */
   const tlEl=G('rgtl'), tlab=G('rgtlab'), tailEl=G('rgtail'), tailV=G('rgtailv');
-  function setPlay(p){R.playing=p; G('rgpicon').setAttribute('d',p?'M2 1.5 h3 v9 h-3 Z M7 1.5 h3 v9 h-3 Z':'M2 1.5 L10.5 6 L2 10.5 Z');}
+  function setPlay(p){R.playing=p; G('rgpicon').setAttribute('d',p?'M2 1.5 h3 v9 h-3 Z M7 1.5 h3 v9 h-3 Z':'M2 1.5 L10.5 6 L2 10.5 Z');
+    G('rgtlab').classList.toggle('rg-live',p);}
   function syncUI(){
     refreshC();
     if(R.zoom==='fit'&&U.length)fitView();
     draw();
     tlEl.max=Math.max(1,W-1); tlEl.value=R.t; tlab.textContent=DATES[Math.round(R.t)]||'—';
-    G('rgwatchlab').textContent='⭐ ('+WATCH.length+')';
+    G('rgwatchlab').textContent='⭐ Watchlist ('+WATCH.length+')';
     const cr=G('rgcrumb');
     if(R.drill){ cr.style.display=''; cr.innerHTML=`<span class="rg-cb">◂ Back to ${R.gran==='sec'?'sectors':'industries'}</span><b>${R.drill}</b><span style="color:var(--muted)">— top ${U.length} members</span>`; }
     else cr.style.display='none';
+    if(S.rrgView){
+      try{
+        document.getElementById('cbarttl').textContent='Relative Rotation Graph';
+        document.getElementById('cbardesc').textContent=`${U.length} ${R.drill?('members of '+R.drill):(R.gran==='sec'?'sectors':'industries')} · RS-Ratio × RS-Momentum · ${R.tf==='D'?'Daily':'Weekly'} · vs ${R.bench||''}`;
+        const lb=document.getElementById('cbarlb'); if(lb)lb.style.display='none';
+        const ct=document.getElementById('count'); if(ct)ct.textContent=`${U.length} shown`;
+      }catch(_){}
+    }
     forceList=true; updList(); lastFeedKey=''; updFeed();
   }
   function rebuild(landNow){
@@ -2642,7 +2657,8 @@ loadLive();                                   // fetch live data.json ONCE on lo
     {sel:"#rotwrap",t:"The four quadrants",b:"Every group is placed by strength &amp; momentum: <b>LEADING</b> — strong &amp; rising, ride these. <b>WEAKENING</b> — was strong, tighten or exit. <b>IMPROVING</b> — turning up, watch to enter. <b>LAGGING</b> — avoid fresh longs."},
     {sel:"#rotmode",t:"View as",b:"<b>Cards</b> — the quadrant columns you're looking at. <b>Heatmap</b> — the same groups as one compact colour grid, great for spotting hot pockets fast. <b>Seasonality</b> — which months have historically favoured each group."},
     {sel:"#rotgran",t:"Level",b:"<b>Sectors</b> — the broad parent sectors, the big-picture read. <b>Industries</b> — fine-grained industry groups for a sharper, more tradeable signal. Tip: scan Sectors first, then switch to Industries inside the strong ones."},
-    {sel:".rotitem",t:"Reading a card",b:"<b>RS</b> = strength vs the benchmark (0–99, higher is stronger). <b>Mom</b> = is that strength rising or fading. The %s show <b>breadth</b> — how many members participate. <svg width='11' height='11' viewBox='0 0 24 24' fill='#F5C518' style='vertical-align:-1px'><path d='M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5zm0 3h14v2H5v-2z'/></svg> = the group's strongest stock. Click any card to open its stocks."},
+    {sel:".rotitem",t:"Reading a card",b:"<b>RS-R</b> = RS-Ratio — the group's trend vs the benchmark (<b>100 = neutral</b>, above = outperforming). <b>RS-M</b> = RS-Momentum — is that lead growing (&ge;100) or fading. The %s show <b>breadth</b>; <b>&#9888; narrow</b> = a strong card carried by few members, <b>&#9650; broad</b> = a lagging group where most members are already turning. <svg width='11' height='11' viewBox='0 0 24 24' fill='#F5C518' style='vertical-align:-1px'><path d='M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5zm0 3h14v2H5v-2z'/></svg> = the group's strongest stock. Click any card to open its stocks."},
+    {sel:"#mtab-rrg",t:"Relative Rotation Graph",b:"The rotation as a <b>living map</b> — every sector orbits the four quadrants and its comet tail remembers where it's been. <b>Press play</b> to replay the rotation through time, <b>double-click</b> a bubble to drill into its member stocks, and <b>&#11088; Watchlist</b> overlays your starred symbols on the same map. Quadrants here use the <b>same numbers</b> as the Rotation cards — one model everywhere."},
     {sel:"#mtab-pat",t:"Patterns",b:"<b>ZIDDI</b> and <b>Humble</b> setups live in their own tab — fresh <b>BUY</b> signals, <b>RUNNING</b> trends and <b>WATCH</b> candidates, each with entry, stop and grade."},
     {sel:"#mtab-cal",t:"Results Calendar",b:"<b>Who reports</b> — recent and upcoming, by week or month. Click any stock for <b>how it behaved around its last four earnings</b>: the price path through each result, plus the single-day moves."},
     {sel:"#lbmode",t:"Lookback",b:"<b>Today</b> = what's moving right now (short-term blasts). <b>Days</b> (63 ≈ one quarter) = the standing trend. <b>Date range</b> = replay any past period."},
