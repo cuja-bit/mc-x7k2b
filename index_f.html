@@ -859,7 +859,7 @@ function renderRotation(){
     const items=gs.map(g=>{
       const top=g.stocks[0]||{};
       const rsv=g.rs, rscol=rsv==null?'var(--muted)':rsv>=60?'var(--green)':rsv>=40?'var(--yellow)':'var(--red)';
-      const chip=(html,title)=>`<span title="${title}" style="border:1px solid var(--border);border-radius:6px;padding:1px 7px;font-family:'IBM Plex Mono';font-size:11px;white-space:nowrap;color:var(--muted)">${html}</span>`;
+      const chip=(html,title)=>`<span title="${title}" style="border:1px solid var(--border);border-radius:6px;padding:1px 5px;font-family:'IBM Plex Mono';font-size:10.5px;white-space:nowrap;color:var(--muted);letter-spacing:-.1px">${html}</span>`;
       return `<div class="rotitem" data-rot="${g.name}">
         <div style="display:flex;align-items:center;gap:6px;white-space:nowrap">
           <span class="nm" style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis">${indLbl(g.name)}</span>
@@ -876,9 +876,9 @@ function renderRotation(){
           <span style="font-family:'IBM Plex Mono';font-size:12.5px;color:var(--text);flex:none">${rsv??'—'}</span>
           ${top.sym?`<span class="tchip" title="Top member by RS" style="flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="#F5C518" style="vertical-align:-1px;margin-right:3px" aria-hidden="true"><path d="M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5zm0 3h14v2H5v-2z"/></svg>${top.sym}</span>`:''}
         </div>
-        <div class="meta" style="margin-top:6px"><span class="mstats" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">
-          ${chip(`RS-R <b style="color:${g._rsr>=100?'var(--green)':'var(--red)'};font-weight:600">${g._rsr.toFixed(1)}</b>`,"RS-Ratio — the group's trend vs the benchmark: above 100 = outperforming it, below 100 = lagging it.")}
-          ${chip(`RS-M <b style="color:${g._rsm>=100?'var(--green)':'var(--red)'};font-weight:600">${g._rsm.toFixed(1)}</b>`,"RS-Momentum — the direction of that trend: above 100 = gaining speed, below 100 = losing steam.")}
+        <div class="meta" style="margin-top:6px"><span class="mstats" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+          ${chip(`<span style="color:var(--dim)">R</span> <b style="color:${g._rsr>=100?'var(--green)':'var(--red)'};font-weight:600">${g._rsr.toFixed(1)}</b>`,"RS-Ratio (RS-R) — the group's trend vs the benchmark: above 100 = outperforming it, below 100 = lagging it.")}
+          ${chip(`<span style="color:var(--dim)">M</span> <b style="color:${g._rsm>=100?'var(--green)':'var(--red)'};font-weight:600">${g._rsm.toFixed(1)}</b>`,"RS-Momentum (RS-M) — the direction of that trend: above 100 = gaining speed, below 100 = losing steam.")}
           ${g.rsPart!=null?chip(`<span style="color:${g.rsPart>=60?'var(--green)':g.rsPart>=45?'var(--yellow)':'var(--red)'}">${g.rsPart}% RS≥50</span>`,"Breadth — how many of the group's stocks are outperforming the benchmark themselves (stock RS ≥ 50). High = a broad move; low = carried by just a few names."):''}
           ${g.a20!=null?chip(`<span style="color:${g.a20>=65?'var(--green)':g.a20>=40?'var(--yellow)':'var(--red)'}">${g.a20}% &gt;20E</span>`,"% of members above their 20-day EMA (participation)"):''}
           ${g.relvol!=null?chip(`<span style="color:${g.relvol>=120?'var(--green)':g.relvol>=80?'var(--yellow)':'var(--red)'}">${rvx(g.relvol)} vol</span>`,"Sector 5-day relative volume vs its own average — 1x = normal. Green ≥1.2x (active), amber ~normal, red <0.8x (dry)"):''}
