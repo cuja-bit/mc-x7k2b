@@ -460,10 +460,10 @@ select option:checked{background:var(--accent-bg);color:#fff}
 /* ================= Relative Rotation Graph tab ================= */
 #rrgwrap{padding:12px 14px}
 #rrgwrap.hide{display:none}
-.rg-main{display:grid;grid-template-columns:1fr 288px;gap:12px;min-height:0}
+.rg-main{display:grid;grid-template-columns:1fr 288px;gap:12px;height:calc(100vh - 388px);min-height:520px}
 @media (max-width:980px){ .rg-main{grid-template-columns:1fr} .rg-aside{display:none} }
-.rg-stage{background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
-.rg-aside{background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.rg-stage{background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;min-width:0;overflow:hidden;height:100%}
+.rg-aside{background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;min-height:0;overflow:hidden;height:100%}
 .rg-bar{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);flex:none;flex-wrap:wrap}
 .rg-seg{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:2px;gap:2px}
 .rg-seg button{background:none;border:none;color:var(--muted);font:inherit;font-size:12px;font-weight:600;padding:4px 10px;border-radius:7px;cursor:pointer}
@@ -480,7 +480,7 @@ select option:checked{background:var(--accent-bg);color:#fff}
 #rgtlab.rg-live{color:var(--accent);font-weight:700}
 select.rg-sel{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:5px 8px;font:inherit;font-size:12px;font-weight:600;outline:none;cursor:pointer}
 select.rg-sel:hover{border-color:var(--border2)}
-.rg-wrap{position:relative;flex:1;min-height:460px;height:calc(100vh - 360px)}
+.rg-wrap{position:relative;flex:1;min-height:0}
 #rgcv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
 .rg-tip{position:absolute;pointer-events:none;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;font-size:12px;min-width:190px;box-shadow:0 8px 28px rgba(0,0,0,.45);display:none;z-index:5}
 .rg-tip b{font-size:13px}
@@ -502,7 +502,7 @@ select.rg-sel:hover{border-color:var(--border2)}
 .rg-cols span:first-child{flex:1}
 .rg-cols span{width:46px;text-align:right}
 .rg-cols span:last-child{width:26px}
-.rg-list{flex:1;overflow-y:auto;padding:0 6px 8px;min-height:0;max-height:560px}
+.rg-list{flex:1;overflow-y:auto;padding:0 6px 8px;min-height:0}
 .rg-row{display:flex;align-items:center;padding:5.5px 8px;border-radius:8px;cursor:pointer;border:1px solid transparent;gap:8px}
 .rg-row:hover{background:var(--panel2)}
 .rg-row.hot{background:var(--panel2);border-color:var(--border2)}
@@ -518,6 +518,7 @@ select.rg-sel:hover{border-color:var(--border2)}
 .rg-sidef{padding:8px 12px;border-top:1px solid var(--border);font-size:10.5px;color:var(--dim);flex:none;display:flex;justify-content:space-between;align-items:center}
 .rg-sidef button{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font:inherit;font-size:10.5px;padding:2px 8px;cursor:pointer}
 .rg-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;z-index:2}
+.scroll.rrgfull{max-height:none}
 </style>
 </head>
 <body>
@@ -854,20 +855,34 @@ function renderRotation(){
   var cols=ctlbar+renderSeasonality(m,true);
   } else {
   var cols=ctlbar+ROTQ.map(Q=>{
-    const gs=groups.filter(Q.f).sort((a,b)=>(b._rsr-a._rsr)||(b._rsm-a._rsm));   // ranked by RS-Ratio (strength) — same order as the RRG tab's side list
+    const gs=groups.filter(Q.f).sort((a,b)=>((b.rs??-1)-(a.rs??-1))||(b._rsr-a._rsr));   // ranked by classic sector RS (1–99), RS-Ratio tiebreak
     const items=gs.map(g=>{
       const top=g.stocks[0]||{};
+      const rsv=g.rs, rscol=rsv==null?'var(--muted)':rsv>=60?'var(--green)':rsv>=40?'var(--yellow)':'var(--red)';
+      const chip=(html,title)=>`<span title="${title}" style="border:1px solid var(--border);border-radius:6px;padding:1px 7px;font-family:'IBM Plex Mono';font-size:11px;white-space:nowrap;color:var(--muted)">${html}</span>`;
       return `<div class="rotitem" data-rot="${g.name}">
-        <div style="display:flex;align-items:center;gap:7px"><span class="nm">${indLbl(g.name)}</span><span class="rc-n" title="stocks in this group">${g.n??""}</span>
-          <span class="pay" style="margin-left:auto;font-family:'IBM Plex Mono';font-weight:700;font-size:12px;color:${g.today>0?'var(--green)':g.today<0?'var(--red)':'var(--muted)'}">${g.today!=null?(g.today>0?'+':'')+g.today.toFixed(1)+'%':''}</span>${top.sym?`<span class="tchip" title="Top member by RS"><svg width="11" height="11" viewBox="0 0 24 24" fill="#F5C518" style="vertical-align:-1px;margin-right:3px" aria-hidden="true"><path d="M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5zm0 3h14v2H5v-2z"/></svg>${top.sym}</span>`:''}</div>
-        <div class="meta"><span class="mstats">
-          <span title="RRG RS-Ratio — trend of the sector composite vs the benchmark (100 = neutral). Same number as the RRG tab.">RS-R <b style="color:${g._rsr>=100?'var(--green)':'var(--red)'}">${g._rsr.toFixed(1)}</b></span>
-          <span title="RRG RS-Momentum — is the outperformance accelerating (>=100) or fading (<100). Same number as the RRG tab." style="color:${g._rsm>=100?'var(--green)':'var(--red)'}">RS-M ${g._rsm.toFixed(1)}</span>
-          ${g._rsr>=100&&g.rsPart!=null&&g.rsPart<50?'<span style="color:var(--yellow);font-weight:700" title="Narrow: the composite is strong but fewer than half the members have RS>=50 — carried by few stocks">\u26a0 narrow</span>':''}${g._rsr<100&&g.rsPart!=null&&g.rsPart>=55?'<span style="color:var(--green);font-weight:700" title="Broad: most members already have RS>=50 while the composite still lags — participation building under the hood">\u25b2 broad</span>':''}
-          <span title="% of members with RS>=50 — participation info (no longer gates the quadrant)" style="color:${g.rsPart>=60?'var(--green)':g.rsPart<=40?'var(--red)':'var(--muted)'}">${g.rsPart!=null?g.rsPart+'% RS≥50':''}</span>
-          <span title="% of members above their 20EMA (participation)" style="color:${g.a20>=70?'var(--green)':g.a20<35?'var(--red)':'var(--muted)'}">${g.a20!=null?g.a20+'% >20E':''}</span>
-          <span title="Sector 5-day relative volume">${g.relvol!=null?rvx(g.relvol)+' vol':''}</span></span>
-        </div></div>`; }).join("");
+        <div style="display:flex;align-items:center;gap:6px;white-space:nowrap">
+          <span class="nm" style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis">${indLbl(g.name)}</span>
+          <span class="rc-n" title="stocks in this group" style="flex:none">${g.n??""}</span>
+          ${g._rsr>=100&&g.rsPart!=null&&g.rsPart<50?'<span style="color:var(--yellow);font-size:10.5px;font-weight:700;flex:none" title="Narrow: the composite is strong but fewer than half the members have RS>=50 — carried by few stocks">⚠ narrow</span>':''}${g._rsr<100&&g.rsPart!=null&&g.rsPart>=55?'<span style="color:var(--green);font-size:10.5px;font-weight:700;flex:none" title="Broad: most members already have RS>=50 while the composite still lags — participation building under the hood">▲ broad</span>':''}
+          <span class="pay" style="margin-left:auto;font-family:'IBM Plex Mono';font-weight:700;font-size:12px;flex:none;color:${g.today>0?'var(--green)':g.today<0?'var(--red)':'var(--muted)'}">${g.today!=null?(g.today>0?'+':'')+g.today.toFixed(1)+'%':''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px" title="Sector RS (1–99, median of member stocks) — cards in each quadrant are ranked by this. The tick marks the 50 midline.">
+          <span style="font-size:10px;color:var(--dim);letter-spacing:.05em;flex:none">RS</span>
+          <span style="flex:1;min-width:34px;height:6px;background:var(--sub);border-radius:3px;position:relative;display:block">
+            <span style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--border2);display:block"></span>
+            <span style="display:block;width:${rsv==null?0:Math.max(2,Math.min(99,rsv))}%;height:100%;background:${rscol};border-radius:3px"></span>
+          </span>
+          <span style="font-family:'IBM Plex Mono';font-size:12.5px;color:var(--text);flex:none">${rsv??'—'}</span>
+          ${top.sym?`<span class="tchip" title="Top member by RS" style="flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="#F5C518" style="vertical-align:-1px;margin-right:3px" aria-hidden="true"><path d="M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5zm0 3h14v2H5v-2z"/></svg>${top.sym}</span>`:''}
+        </div>
+        <div class="meta" style="margin-top:6px"><span class="mstats" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">
+          ${chip(`RS-R <b style="color:${g._rsr>=100?'var(--green)':'var(--red)'};font-weight:600">${g._rsr.toFixed(1)}</b>`,"RS-Ratio — the group's trend vs the benchmark: above 100 = outperforming it, below 100 = lagging it.")}
+          ${chip(`RS-M <b style="color:${g._rsm>=100?'var(--green)':'var(--red)'};font-weight:600">${g._rsm.toFixed(1)}</b>`,"RS-Momentum — the direction of that trend: above 100 = gaining speed, below 100 = losing steam.")}
+          ${g.rsPart!=null?chip(`<span style="color:${g.rsPart>=60?'var(--green)':g.rsPart>=45?'var(--yellow)':'var(--red)'}">${g.rsPart}% RS≥50</span>`,"Breadth — how many of the group's stocks are outperforming the benchmark themselves (stock RS ≥ 50). High = a broad move; low = carried by just a few names."):''}
+          ${g.a20!=null?chip(`<span style="color:${g.a20>=65?'var(--green)':g.a20>=40?'var(--yellow)':'var(--red)'}">${g.a20}% &gt;20E</span>`,"% of members above their 20-day EMA (participation)"):''}
+          ${g.relvol!=null?chip(`<span style="color:${g.relvol>=120?'var(--green)':g.relvol>=80?'var(--yellow)':'var(--red)'}">${rvx(g.relvol)} vol</span>`,"Sector 5-day relative volume vs its own average — 1x = normal. Green ≥1.2x (active), amber ~normal, red <0.8x (dry)"):''}
+        </span></div></div>`; }).join("");
     return `<div class="rotcol" style="border-top:3px solid ${Q.c}"><div class="rothd" style="color:${Q.c}">
       <div><div>${Q.t}</div><div class="sub">${Q.s}</div></div><span class="cnt" style="background:${Q.c}">${gs.length}</span></div>
       ${items||'<div class="rotitem" style="color:var(--muted);cursor:default">— none —</div>'}</div>`; }).join("");
@@ -1645,10 +1660,18 @@ function recompute(){
     const nz=all.map(x=>x.rs).filter(v=>v!=null).sort((a,b)=>a-b);
     const j2=Math.max(0,bc.length-1-bars);
     const A50=all.filter(x=>x._tfA50!=null), A200=all.filter(x=>x._tfA200!=null), CHG=all.filter(x=>x._tfChg!=null);
-    m._br={ a200: A200.length?Math.round(A200.filter(x=>x._tfA200).length/A200.length*100):null,
-            a200n: A200.filter(x=>x._tfA200).length, a200d: A200.length,
-            a50n: A50.filter(x=>x._tfA50).length, a50d: A50.length, tot: all.length,
-            a50:  A50.length?Math.round(A50.filter(x=>x._tfA50).length/A50.length*100):null,
+    // where the selected timeframe lacks the bars for a real EMA (4H/W/M for 200, M for 50),
+    // fall back to the DAILY EMA — shown with a small D marker instead of a dash
+    const D200=all.filter(x=>x.c&&x.c.length>=200), D50=all.filter(x=>x.c&&x.c.length>=50);
+    const f200=!A200.length, f50=!A50.length;
+    m._br={ a200: f200? (D200.length?Math.round(D200.filter(x=>x._a200).length/D200.length*100):null)
+                      : Math.round(A200.filter(x=>x._tfA200).length/A200.length*100),
+            a200n: f200? D200.filter(x=>x._a200).length : A200.filter(x=>x._tfA200).length,
+            a200d: f200? D200.length : A200.length, a200src: f200?'D':'',
+            a50n: f50? D50.filter(x=>x._a50).length : A50.filter(x=>x._tfA50).length,
+            a50d: f50? D50.length : A50.length, a50src: f50?'D':'', tot: all.length,
+            a50:  f50? (D50.length?Math.round(D50.filter(x=>x._a50).length/D50.length*100):null)
+                     : Math.round(A50.filter(x=>x._tfA50).length/A50.length*100),
             adv:  CHG.filter(x=>x._tfChg>0).length,
             dec:  CHG.filter(x=>x._tfChg<0).length,
             med:  nz.length?nz[Math.floor(nz.length/2)]:null,
@@ -1690,6 +1713,7 @@ function render(){
   const rrgMode = !!S.rrgView && !patMode && !scrMode && !calMode;
   syncTabs(patMode?"pat":scrMode?"scr":calMode?"cal":rrgMode?"rrg":"ana");
   if(!rrgMode){ const lb=document.getElementById("cbarlb"); if(lb)lb.style.display=""; }
+  { const sc=document.querySelector(".scroll"); if(sc)sc.classList.toggle("rrgfull",rrgMode); }   // RRG tab sizes itself — no nested scrollbar
   { const pc=document.getElementById("patctl"), sc=document.getElementById("scrctl"), b2=document.getElementById("bar2");
     if(pc)pc.classList.toggle('hide',!patMode); if(sc)sc.classList.toggle('hide',!scrMode);
     if(b2)b2.classList.toggle('hide', scrMode||calMode||rrgMode);
@@ -1858,8 +1882,8 @@ function breadthLine(){
   const sep='<i class="bsep"></i>';
   el.innerHTML=[
     `<span class="bch">${mk[S.market].benchmarks[S.bench]}${sep}<b style="color:${b.bret>0?'var(--green)':b.bret<0?'var(--red)':'var(--muted)'}">${pct(b.bret)}</b> <span style="color:var(--dim)">over lookback</span></span>`,
-    `<span class="bch" title="Stocks above the 200-bar EMA of the selected timeframe (200-day on Daily; — on 4H/Weekly/Monthly, the feed has no 200 bars there)">Above 200 EMA${sep}<b style="color:${col(b.a200,60,40)}">${b.a200!=null?b.a200+"%":"—"}</b>${b.a200!=null?`${sep}<span style="color:var(--muted);font-size:11px">${b.a200n} / ${b.a200d}</span>`:""}</span>`,
-    `<span class="bch" title="Stocks above the 50-bar EMA of the selected timeframe (50-day on Daily, 50-week on Weekly, 50×4H bars on 4H)">Above 50 EMA${sep}<b style="color:${col(b.a50,60,40)}">${b.a50!=null?b.a50+"%":"—"}</b>${b.a50!=null?`${sep}<span style="color:var(--muted);font-size:11px">${b.a50n} / ${b.a50d}</span>`:""}</span>`,
+    `<span class="bch" title="Stocks above the 200-bar EMA of the selected timeframe. 4H/Weekly/Monthly lack 200 bars of history, so the DAILY 200-EMA is shown there — marked D.">Above 200 EMA${sep}<b style="color:${col(b.a200,60,40)}">${b.a200!=null?b.a200+"%":"—"}</b>${b.a200src?`<span style="color:var(--dim);font-size:10px;font-weight:700"> D</span>`:""}${b.a200!=null?`${sep}<span style="color:var(--muted);font-size:11px">${b.a200n} / ${b.a200d}</span>`:""}</span>`,
+    `<span class="bch" title="Stocks above the 50-bar EMA of the selected timeframe (50-day / 50-week / 50×4H). Monthly lacks 50 bars, so the DAILY 50-EMA is shown there — marked D.">Above 50 EMA${sep}<b style="color:${col(b.a50,60,40)}">${b.a50!=null?b.a50+"%":"—"}</b>${b.a50src?`<span style="color:var(--dim);font-size:10px;font-weight:700"> D</span>`:""}${b.a50!=null?`${sep}<span style="color:var(--muted);font-size:11px">${b.a50n} / ${b.a50d}</span>`:""}</span>`,
     `<span class="bch" title="Advancers vs decliners over the last bar of the selected timeframe (day / week / month / 4H bar)">Adv <b style="color:var(--green)">${b.adv}</b>${sep}Dec <b style="color:var(--red)">${b.dec}</b></span>`,
     `<span class="bch">Median RS${sep}<b style="color:${col(b.med,60,40)}">${b.med??"—"}</b></span>`,
     `<span class="bch" title="Tight + strong + near highs — candidates to fire in 1–3 sessions">⚡ Coiling${sep}<b style="color:${b.coil>0?'var(--accent)':'var(--muted)'}">${b.coil??0}</b></span>`
@@ -2657,7 +2681,7 @@ loadLive();                                   // fetch live data.json ONCE on lo
     {sel:"#rotwrap",t:"The four quadrants",b:"Every group is placed by strength &amp; momentum: <b>LEADING</b> — strong &amp; rising, ride these. <b>WEAKENING</b> — was strong, tighten or exit. <b>IMPROVING</b> — turning up, watch to enter. <b>LAGGING</b> — avoid fresh longs."},
     {sel:"#rotmode",t:"View as",b:"<b>Cards</b> — the quadrant columns you're looking at. <b>Heatmap</b> — the same groups as one compact colour grid, great for spotting hot pockets fast. <b>Seasonality</b> — which months have historically favoured each group."},
     {sel:"#rotgran",t:"Level",b:"<b>Sectors</b> — the broad parent sectors, the big-picture read. <b>Industries</b> — fine-grained industry groups for a sharper, more tradeable signal. Tip: scan Sectors first, then switch to Industries inside the strong ones."},
-    {sel:".rotitem",t:"Reading a card",b:"<b>RS-R</b> = RS-Ratio — the group's trend vs the benchmark (<b>100 = neutral</b>, above = outperforming). <b>RS-M</b> = RS-Momentum — is that lead growing (&ge;100) or fading. The %s show <b>breadth</b>; <b>&#9888; narrow</b> = a strong card carried by few members, <b>&#9650; broad</b> = a lagging group where most members are already turning. <svg width='11' height='11' viewBox='0 0 24 24' fill='#F5C518' style='vertical-align:-1px'><path d='M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5zm0 3h14v2H5v-2z'/></svg> = the group's strongest stock. Click any card to open its stocks."},
+    {sel:".rotitem",t:"Reading a card",b:"The <b>RS bar</b> = classic sector strength (1–99, median of members) — cards are <b>ranked by it</b>; the tick is the 50 midline. The chips: <b>RS-R</b> / <b>RS-M</b> = the RRG model (100 = neutral) that sets the quadrant. The %s show <b>breadth</b>; <b>&#9888; narrow</b> = a strong card carried by few members, <b>&#9650; broad</b> = a lagging group where most members are already turning. <svg width='11' height='11' viewBox='0 0 24 24' fill='#F5C518' style='vertical-align:-1px'><path d='M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5zm0 3h14v2H5v-2z'/></svg> = the group's strongest stock. Click any card to open its stocks."},
     {sel:"#mtab-rrg",t:"Relative Rotation Graph",b:"The rotation as a <b>living map</b> — every sector orbits the four quadrants and its comet tail remembers where it's been. <b>Press play</b> to replay the rotation through time, <b>double-click</b> a bubble to drill into its member stocks, and <b>&#11088; Watchlist</b> overlays your starred symbols on the same map. Quadrants here use the <b>same numbers</b> as the Rotation cards — one model everywhere."},
     {sel:"#mtab-pat",t:"Patterns",b:"<b>ZIDDI</b> and <b>Humble</b> setups live in their own tab — fresh <b>BUY</b> signals, <b>RUNNING</b> trends and <b>WATCH</b> candidates, each with entry, stop and grade."},
     {sel:"#mtab-cal",t:"Results Calendar",b:"<b>Who reports</b> — recent and upcoming, by week or month. Click any stock for <b>how it behaved around its last four earnings</b>: the price path through each result, plus the single-day moves."},
