@@ -869,12 +869,12 @@ function renderRotation(){
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:6px" title="Sector RS (1–99, median of member stocks) — cards in each quadrant are ranked by this. The tick marks the 50 midline.">
           <span style="font-size:10px;color:var(--dim);letter-spacing:.05em;flex:none">RS</span>
-          <span style="flex:1;min-width:34px;height:6px;background:var(--sub);border-radius:3px;position:relative;display:block">
+          <span style="width:110px;flex:none;height:6px;background:var(--sub);border-radius:3px;position:relative;display:block">
             <span style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--border2);display:block"></span>
             <span style="display:block;width:${rsv==null?0:Math.max(2,Math.min(99,rsv))}%;height:100%;background:${rscol};border-radius:3px"></span>
           </span>
-          <span style="font-family:'IBM Plex Mono';font-size:12.5px;color:var(--text);flex:none">${rsv??'—'}</span>
-          ${top.sym?`<span class="tchip" title="Top member by RS" style="flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="#F5C518" style="vertical-align:-1px;margin-right:3px" aria-hidden="true"><path d="M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5zm0 3h14v2H5v-2z"/></svg>${top.sym}</span>`:''}
+          <span style="font-family:'IBM Plex Mono';font-size:12.5px;color:var(--text);flex:none;min-width:20px;text-align:right">${rsv??'—'}</span>
+          ${top.sym?`<span class="tchip" title="Top member by RS: ${top.sym}" style="margin-left:auto;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><svg width="11" height="11" viewBox="0 0 24 24" fill="#F5C518" style="vertical-align:-1px;margin-right:3px" aria-hidden="true"><path d="M5 16L3 5l5.5 4L12 4l3.5 5L21 5l-2 11H5zm0 3h14v2H5v-2z"/></svg>${top.sym}</span>`:''}
         </div>
         <div class="meta" style="margin-top:6px"><span class="mstats" style="display:flex;flex-wrap:wrap;gap:3px;align-items:center">
           ${chip(`<span style="color:var(--dim)">R</span> <b style="color:${g._rsr>=100?'var(--green)':'var(--red)'};font-weight:600">${g._rsr.toFixed(1)}</b>`,"RS-Ratio (RS-R) — the group's trend vs the benchmark: above 100 = outperforming it, below 100 = lagging it.")}
@@ -2204,10 +2204,22 @@ async function loadLive(){
     if(!R.benchTouched||!names.includes(R.bench)) R.bench=(m.benchmarks&&names.includes(m.benchmarks[S.bench]))?m.benchmarks[S.bench]:names[0];
     const bs=G('rgbsel'); bs.innerHTML=names.map(k=>`<option${k===R.bench?' selected':''}>${k}</option>`).join('');
     const step=R.tf==='D'?1:5, L=280, T=Math.ceil(L/step);
-    const bench=stepSample((m.bench_closes[R.bench]||[]).slice(-L),step);
+    const benchD=(m.bench_closes[R.bench]||[]).slice(-L);
+    const bench=stepSample(benchD,step);
     if(bench.length<24){ msg('waiting for live data… (this build has no full price history)'); buildList(); return; }
     const okc=c=>c&&c.length>=L&&c[c.length-L]>0;
+    const minD=step===1?30:125;                    // enough bars for the 14+10 windows on this grid
+    const okS=c=>c&&c.length>=minD&&c[c.length-1]>0;   // single stocks: shorter history allowed (IPOs)
     const grid=c=>stepSample(c.slice(-L),step);
+    /* per-stock series on ITS OWN tail, front-padded with nulls onto the shared T grid —
+       a young stock's comet simply begins at its listing */
+    function seriesOfStock(c){
+      const L2=Math.min(L,c.length);
+      const r=mkSeries(stepSample(c.slice(-L2),step), stepSample(benchD.slice(-L2),step));
+      const pad=T-r.A.length;
+      if(pad>0){ r.A=new Array(pad).fill(null).concat(r.A); r.B=new Array(pad).fill(null).concat(r.B); }
+      return r;
+    }
     (m.sectors||[]).forEach(sec=>(sec.stocks||[]).forEach(st=>{ SYMIDX[st.sym]={c:st.c,nm:st.nm}; }));
     function seriesOf(memCloses){
       const comp=new Array(T).fill(0); let cnt=0;
@@ -2221,8 +2233,8 @@ async function loadLive(){
       (m.sectors||[]).forEach(sec=>{
         const g=R.gran==='sec'?grpOfR(m,sec.name):indLbl(sec.name);
         if(g!==R.drill)return;
-        (sec.stocks||[]).forEach(st=>{ if(!okc(st.c))return;
-          const {A,B}=seriesOf([st.c]);
+        (sec.stocks||[]).forEach(st=>{ if(!okS(st.c))return;
+          const {A,B}=seriesOfStock(st.c);
           raw.push({name:st.sym,full:st.nm,A,B,_n:1}); });
       });
       raw.sort((a,b)=>((b.A[b.A.length-1]??-1e9)-(a.A[a.A.length-1]??-1e9)));
@@ -2241,17 +2253,22 @@ async function loadLive(){
     }
     if(!raw.length){ msg('no groups with enough history yet'); buildList(); return; }
     const T2=raw[0].A.length;
-    let first=0; raw.forEach(u=>{ let fj=0; while(fj<T2&&(u.A[fj]==null||u.B[fj]==null))fj++; if(fj>first)first=fj; });
-    if(first>=T2-3){ msg('not enough bars for the model on this timeframe'); buildList(); return; }
+    raw.forEach(u=>{ let fj=0; while(fj<T2&&(u.A[fj]==null||u.B[fj]==null))fj++; u._fj=fj; });
+    raw=raw.filter(u=>u._fj<T2-8);                 // keep entities with at least 8 modelled bars
+    if(!raw.length){ msg('not enough bars for the model on this timeframe'); buildList(); return; }
+    const first=Math.min.apply(null,raw.map(u=>u._fj));
     let sx=0,sy=0,n=0;
     raw.forEach(u=>{ for(let i=first;i<T2;i++){ if(u.A[i]==null||u.B[i]==null)continue;
       sx+=(u.A[i]-100)**2; sy+=(u.B[i]-100)**2; n++; }});
     const kx=Math.min(40,2.8/Math.max(1e-4,Math.sqrt(sx/n))), ky=Math.min(40,2.8/Math.max(1e-4,Math.sqrt(sy/n)));
-    const mkPts=u=>{ const pts=[],vals=[];
-      for(let i=first;i<T2;i++){ if(u.A[i]==null||u.B[i]==null)continue;
+    const mkPts=u=>{ const pts=[],vals=[]; let f0=-1,nv=0;
+      for(let i=first;i<T2;i++){
+        if(u.A[i]==null||u.B[i]==null){ pts.push(null); vals.push(null); continue; }
+        if(f0<0)f0=pts.length; nv++;
         pts.push({x:Math.max(91,Math.min(109,100+(u.A[i]-100)*kx)),
                   y:Math.max(91,Math.min(109,100+(u.B[i]-100)*ky))});
         vals.push({a:u.A[i],b:u.B[i]}); }
+      pts._f0=Math.max(0,f0); pts._nv=nv;
       return {name:u.name,full:u.full,pts,vals}; };
     U=raw.map(mkPts);
     if(!R.drill) U.sort((a,b)=>a.name.localeCompare(b.name));
@@ -2263,14 +2280,16 @@ async function loadLive(){
     DATES=[]; for(let i=first;i<T2;i++) DATES.push(fmt(dsAll[i]));
     /* events */
     EVENTS=[];
-    U.forEach(u=>{ for(let w=1;w<W;w++){ const a=quadOf(u.pts[w-1].x,u.pts[w-1].y), b=quadOf(u.pts[w].x,u.pts[w].y);
+    U.forEach(u=>{ for(let w=1;w<W;w++){ const p1=u.pts[w-1], p2=u.pts[w]; if(!p1||!p2)continue;
+      const a=quadOf(p1.x,p1.y), b=quadOf(p2.x,p2.y);
       if(a!==b) EVENTS.push({w,name:u.name,to:b}); }});
     /* watchlist overlay (same scaling) */
-    WATCH=[...(S.watch||[])].filter(s=>SYMIDX[s]&&okc(SYMIDX[s].c));
+    WATCH=[...(S.watch||[])].filter(s=>SYMIDX[s]&&okS(SYMIDX[s].c));
+    R._wskip=[...(S.watch||[])].filter(s=>SYMIDX[s]&&!okS(SYMIDX[s].c));   // starred but too young to model
     if(R.showWatch&&WATCH.length){
-      WATCH.forEach(sym=>{ const {A,B}=seriesOf([SYMIDX[sym].c]);
+      WATCH.forEach(sym=>{ const {A,B}=seriesOfStock(SYMIDX[sym].c);
         const u=mkPts({name:sym,full:SYMIDX[sym].nm,A,B});
-        if(u.pts.length>=8) WATCHU.push(u); });
+        if(u.pts._nv>=8) WATCHU.push(u); });
     }
     msg(null); buildList();
   }
@@ -2296,7 +2315,7 @@ async function loadLive(){
     U.forEach(u=>{ if(focus){ if(focus.has(u.name))ents.push(u); } else if(!watchFocus)ents.push(u); });
     if(R.showWatch) WATCHU.forEach(u=>ents.push(u));
     ents.forEach(u=>{ for(let w=Math.max(0,Math.ceil(R.t-R.tail));w<=Math.min(R.t,u.pts.length-1);w++){
-      const p=u.pts[Math.min(u.pts.length-1,Math.max(0,w))];
+      const p=u.pts[Math.min(u.pts.length-1,Math.max(0,w))]; if(!p)continue;
       x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y);} });
     const padX=(x1-x0)*0.14+1.2, padY=(y1-y0)*0.14+1.2;
     x0-=padX;x1+=padX;y0-=padY;y1+=padY;
@@ -2305,8 +2324,8 @@ async function loadLive(){
     R.tView.cx=(x0+x1)/2; R.tView.cy=(y0+y1)/2;
   }
   function sample(pts,t){
-    const n=pts.length, i=Math.floor(t), f=t-i;
-    const p=k=>pts[Math.max(0,Math.min(n-1,k))];
+    const n=pts.length, i=Math.floor(t), f=t-i, lo=pts._f0||0;
+    const p=k=>pts[Math.max(lo,Math.min(n-1,k))]||pts[lo];
     const p0=p(i-1),p1=p(i),p2=p(i+1),p3=p(i+2);
     const cr=(a,b,c,d)=>b+0.5*f*(c-a+f*(2*a-5*b+4*c-d+f*(3*(b-c)+d-a)));
     return {x:cr(p0.x,p1.x,p2.x,p3.x), y:cr(p0.y,p1.y,p2.y,p3.y)};
@@ -2358,7 +2377,7 @@ async function loadLive(){
     const focus=focusSet(), watchFocus=R.showWatch&&WATCHU.length>0;
     EVENTS.forEach(e=>{ const dt=R.t-e.w; if(dt<0||dt>0.7)return;
       const u=U.find(x=>x.name===e.name); if(!u)return; if(focus&&!focus.has(e.name))return;
-      const p=u.pts[e.w], r=6+dt*34, a=(1-dt/0.7)*0.5;
+      const p=u.pts[e.w]; if(!p)return; const r=6+dt*34, a=(1-dt/0.7)*0.5;
       ctx.beginPath(); ctx.strokeStyle=QC[e.to]+Math.round(a*255).toString(16).padStart(2,'0');
       ctx.lineWidth=1.6; ctx.arc(sx(p.x),sy(p.y),r,0,7); ctx.stroke(); });
 
@@ -2563,7 +2582,8 @@ async function loadLive(){
     if(R.zoom==='fit'&&U.length)fitView();
     draw();
     tlEl.max=Math.max(1,W-1); tlEl.value=R.t; tlab.textContent=DATES[Math.round(R.t)]||'—';
-    G('rgwatchlab').textContent='⭐ Watchlist ('+WATCH.length+')';
+    { const wl=G('rgwatchlab'); wl.textContent='⭐ Watchlist ('+WATCH.length+')';
+      wl.title=(R._wskip&&R._wskip.length)?('Starred but too little price history to model yet: '+R._wskip.join(', ')):''; }
     const cr=G('rgcrumb');
     if(R.drill){ cr.style.display=''; cr.innerHTML=`<span class="rg-cb">◂ Back to ${R.gran==='sec'?'sectors':'industries'}</span><b>${R.drill}</b><span style="color:var(--muted)">— top ${U.length} members</span>`; }
     else cr.style.display='none';
@@ -2649,7 +2669,8 @@ async function loadLive(){
   window._RRG={
     show(){
       const mkKey=S.market;
-      const key=S.market+'|'+(typeof DATA!=='undefined'&&DATA?DATA.generated:'')+'|'+(typeof LIVE!=='undefined'?LIVE:'');
+      const key=S.market+'|'+(typeof DATA!=='undefined'&&DATA?DATA.generated:'')+'|'+(typeof LIVE!=='undefined'?LIVE:'')
+        +'|'+[...(S.watch||[])].sort().join(',');   // star changes rebuild the map on next open
       if(marketKey!==mkKey){ marketKey=mkKey; R.benchTouched=false; R.drill=null; R.pins.clear(); }
       resize();
       if(key!==builtKey||!U.length){ builtKey=key; build(); R.t=Math.max(0,W-1); setPlay(false);
